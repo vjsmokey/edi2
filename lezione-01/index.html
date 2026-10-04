@@ -472,7 +472,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
       <h2>I vincoli fisici dell'<em>oggetto</em></h2>
       <p class="lede">Scegliere l'oggetto sbagliato significa compromettere 15 settimane di corso.</p>
       <ul class="points">
-        <li><b>Dimensioni.</b> Minimo 15×15 cm, massimo circa 100 cm sul lato lungo: la taglia di una chitarra o di una TV da 45".</li>
+        <li><b>Dimensioni.</b> Minimo 25×25 cm, massimo circa 100 cm sul lato lungo: la taglia di una chitarra o di una TV da 45".</li>
         <li><b>Colore e finitura.</b> Rigorosamente opaco/matte. Bianco, grigio chiaro o pastello desaturato.</li>
         <li><b>Morfologia.</b> Volumi chiari o scomparti leggibili: sneaker, packaging rigido, controller MIDI verniciato, scultura geometrica, busto low-poly.</li>
       </ul>
@@ -486,14 +486,14 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
         <div class="seg" id="presets">
           <button type="button" data-p="guitar">Chitarra rossa lucida</button>
           <button type="button" data-p="bottle">Bottiglia di vetro</button>
-          <button type="button" data-p="sneaker">Sneaker high-top bianca</button>
+          <button type="button" data-p="pack">Packaging rigido bianco</button>
           <button type="button" data-p="bust">Busto low-poly in gesso</button>
           <button type="button" data-p="midi">Controller MIDI verniciato</button>
           <button type="button" data-p="ball">Sfera di polistirolo</button>
         </div>
       </div>
-      <label class="slider"><span class="lbl">Larghezza</span><input id="cW" type="range" min="5" max="150" value="22"><output id="cWo">22 cm</output></label>
-      <label class="slider"><span class="lbl">Altezza</span><input id="cH" type="range" min="5" max="150" value="22"><output id="cHo">22 cm</output></label>
+      <label class="slider"><span class="lbl">Larghezza</span><input id="cW" type="range" min="5" max="150" value="40"><output id="cWo">40 cm</output></label>
+      <label class="slider"><span class="lbl">Altezza</span><input id="cH" type="range" min="5" max="150" value="40"><output id="cHo">40 cm</output></label>
       <div class="row"><span class="lbl">Finitura</span><div class="seg" data-k="fin">
         <button type="button" data-v="opaco" aria-pressed="true">Opaco</button><button type="button" data-v="satinato">Satinato</button><button type="button" data-v="lucido">Lucido</button><button type="button" data-v="cromo">Cromo/specchio</button><button type="button" data-v="vetro">Vetro</button></div></div>
       <div class="row"><span class="lbl">Colore</span><div class="seg" data-k="col">
@@ -920,21 +920,21 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
   }
 
   /* ---------- 07 · Checker ---------- */
-  const st = { w: 22, h: 22, fin: 'opaco', col: 'bianco', morph: 'volumi' };
+  const st = { w: 40, h: 40, fin: 'opaco', col: 'bianco', morph: 'volumi' };
   const PRE = {
     guitar:  { w: 100, h: 36, fin: 'lucido', col: 'saturo', morph: 'volumi' },
     bottle:  { w: 8, h: 30, fin: 'vetro', col: 'trasparente', morph: 'volumi' },
-    sneaker: { w: 30, h: 15, fin: 'opaco', col: 'bianco', morph: 'volumi' },
-    bust:    { w: 18, h: 28, fin: 'opaco', col: 'bianco', morph: 'volumi' },
-    midi:    { w: 28, h: 18, fin: 'opaco', col: 'grigio', morph: 'scomparti' },
-    ball:    { w: 20, h: 20, fin: 'opaco', col: 'bianco', morph: 'liscia' }
+    pack:    { w: 35, h: 30, fin: 'opaco', col: 'bianco', morph: 'volumi' },
+    bust:    { w: 30, h: 45, fin: 'opaco', col: 'bianco', morph: 'volumi' },
+    midi:    { w: 48, h: 28, fin: 'opaco', col: 'grigio', morph: 'scomparti' },
+    ball:    { w: 30, h: 30, fin: 'opaco', col: 'bianco', morph: 'liscia' }
   };
   function check() {
     $('#cWo').textContent = st.w + ' cm'; $('#cHo').textContent = st.h + ' cm';
     const out = [];
     const mx = Math.max(st.w, st.h), mn = Math.min(st.w, st.h);
     if (mx > 100) out.push(['no', 'Fuori scala: il lato maggiore è ' + mx + ' cm, il massimo è 100 cm.']);
-    else if (mn < 15) out.push(['no', 'Troppo piccolo: il lato minore è ' + mn + ' cm, il minimo è 15 cm.']);
+    else if (mn < 25) out.push(['no', 'Troppo piccolo: il lato minore è ' + mn + ' cm, il minimo è 25 cm.']);
     else out.push(['ok', 'Dimensioni nei limiti (' + st.w + ' × ' + st.h + ' cm).']);
     out.push(({ opaco: ['ok', 'Finitura opaca: la luce si diffonde in modo uniforme.'],
        satinato: ['wn', 'Satinato: possibile hotspot. Provalo sotto il proiettore prima di confermarlo.'],
