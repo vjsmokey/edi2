@@ -472,7 +472,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
       <h2>I vincoli fisici dell'<em>oggetto</em></h2>
       <p class="lede">Scegliere l'oggetto sbagliato significa compromettere 15 settimane di corso.</p>
       <ul class="points">
-        <li><b>Dimensioni.</b> Minimo 25×25 cm, massimo circa 100 cm sul lato lungo: la taglia di una chitarra o di una TV da 45".</li>
+        <li><b>Dimensioni.</b> Minimo la taglia di una sneaker (circa 30 × 12 cm), massimo circa 100 cm sul lato lungo: la taglia di una chitarra o di una TV da 45".</li>
         <li><b>Colore e finitura.</b> Rigorosamente opaco/matte. Bianco, grigio chiaro o pastello desaturato.</li>
         <li><b>Morfologia.</b> Volumi chiari o scomparti leggibili: sneaker, packaging rigido, controller MIDI verniciato, scultura geometrica, busto low-poly.</li>
       </ul>
@@ -486,6 +486,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
         <div class="seg" id="presets">
           <button type="button" data-p="guitar">Chitarra rossa lucida</button>
           <button type="button" data-p="bottle">Bottiglia di vetro</button>
+          <button type="button" data-p="sneaker">Sneaker bianca opaca</button>
           <button type="button" data-p="pack">Packaging rigido bianco</button>
           <button type="button" data-p="bust">Busto low-poly in gesso</button>
           <button type="button" data-p="midi">Controller MIDI verniciato</button>
@@ -924,6 +925,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
   const PRE = {
     guitar:  { w: 100, h: 36, fin: 'lucido', col: 'saturo', morph: 'volumi' },
     bottle:  { w: 8, h: 30, fin: 'vetro', col: 'trasparente', morph: 'volumi' },
+    sneaker: { w: 30, h: 12, fin: 'opaco', col: 'bianco', morph: 'volumi' },
     pack:    { w: 35, h: 30, fin: 'opaco', col: 'bianco', morph: 'volumi' },
     bust:    { w: 30, h: 45, fin: 'opaco', col: 'bianco', morph: 'volumi' },
     midi:    { w: 48, h: 28, fin: 'opaco', col: 'grigio', morph: 'scomparti' },
@@ -934,7 +936,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
     const out = [];
     const mx = Math.max(st.w, st.h), mn = Math.min(st.w, st.h);
     if (mx > 100) out.push(['no', 'Fuori scala: il lato maggiore è ' + mx + ' cm, il massimo è 100 cm.']);
-    else if (mn < 25) out.push(['no', 'Troppo piccolo: il lato minore è ' + mn + ' cm, il minimo è 25 cm.']);
+    else if (mx < 25 || mn < 10) out.push(['no', 'Troppo piccolo: sotto la taglia di una sneaker (circa 30 × 12 cm).']);
     else out.push(['ok', 'Dimensioni nei limiti (' + st.w + ' × ' + st.h + ' cm).']);
     out.push(({ opaco: ['ok', 'Finitura opaca: la luce si diffonde in modo uniforme.'],
        satinato: ['wn', 'Satinato: possibile hotspot. Provalo sotto il proiettore prima di confermarlo.'],
