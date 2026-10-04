@@ -1,0 +1,996 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dal Monitor allo Spazio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: una "sala buia" a schermo pieno; ogni slide è una cue di proiezione (testo a sinistra, demo interattiva a destra), HUD fisso in basso. Tema unico scuro per scelta: il buio è il soggetto. */
+:root{
+  --room:#0b0c10;      /* la sala al buio */
+  --panel:#13151c;     /* superfici degli strumenti */
+  --line:#272a35;
+  --lumen:#f3efe4;     /* luce bianca calda del proiettore */
+  --muted:#a0a3af;
+  --faint:#5e6271;
+  --r:#ff5b4f; --g:#48dc8c; --b:#5c8eff;   /* canali additivi RGB, usati solo come segnali */
+  --warn:#ffb648;
+  --display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --body:"Instrument Sans",system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--room);color:var(--lumen);font:400 1.05rem/1.55 var(--body);overflow:hidden;-webkit-font-smoothing:antialiased}
+a{color:var(--lumen);text-decoration-color:var(--faint);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--lumen)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--lumen);outline-offset:3px}
+
+/* ---------- Deck ---------- */
+#deck{position:relative;height:100%}
+.slide{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:clamp(28px,5vh,64px) clamp(16px,5vw,72px) 110px;
+  opacity:0;visibility:hidden;transform:translateX(2.5%);transition:opacity .5s ease,transform .6s cubic-bezier(.2,.7,.2,1),visibility 0s .6s}
+.slide.past{transform:translateX(-2.5%)}
+.slide.active{opacity:1;visibility:visible;transform:none;transition:opacity .5s ease,transform .6s cubic-bezier(.2,.7,.2,1),visibility 0s}
+.inner{max-width:1240px;min-height:100%;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:clamp(28px,4vw,64px);align-items:center}
+.inner > *{min-width:0}
+@media (max-width:900px){.inner{grid-template-columns:minmax(0,1fr);align-items:start}}
+
+.eyebrow{font:600 .74rem/1.3 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;gap:.75em;flex-wrap:wrap;align-items:center}
+.eyebrow .cue{color:var(--room);background:var(--lumen);padding:.2em .5em;border-radius:2px}
+h1,h2{font-family:var(--display);font-variation-settings:"wdth" 125;font-weight:800;letter-spacing:-.01em;line-height:.98;text-wrap:balance;margin:.35em 0 .45em}
+h1{font-size:clamp(2.7rem,7.4vw,6.4rem)}
+h2{font-size:clamp(1.9rem,3.9vw,3.3rem)}
+h2 em,h1 em{font-style:normal;color:var(--room);background:var(--lumen);padding:0 .12em;box-shadow:0 0 40px rgba(243,239,228,.35)}
+.lede{font-size:clamp(1.1rem,1.6vw,1.35rem);color:var(--lumen);max-width:46ch;margin:0 0 1.2em}
+ul.points{list-style:none;padding:0;margin:0;display:grid;gap:.95em;max-width:60ch}
+ul.points li{padding-left:1.4em;position:relative;color:#d9d6cd}
+ul.points li::before{content:"";position:absolute;left:0;top:.62em;width:.6em;height:1px;background:var(--lumen)}
+ul.points b{color:var(--lumen);font-weight:600}
+.rule{margin-top:1.4em;border:1px solid var(--lumen);padding:.9em 1.1em;max-width:60ch;display:grid;gap:.25em}
+.rule .k{font:600 .72rem var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.rule p{margin:0;font-weight:600;font-size:1.1rem}
+.refs{margin-top:1.4em;display:grid;gap:.6em;max-width:60ch}
+.refs .k{font:600 .72rem var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.refs .links{display:flex;flex-wrap:wrap;gap:.5em}
+.chip-link{font:500 .85rem var(--mono);border:1px solid var(--line);padding:.45em .7em;border-radius:3px;text-decoration:none;background:var(--panel)}
+.chip-link:hover{border-color:var(--lumen)}
+.chip-link::after{content:" ↗";color:var(--muted)}
+.watch{margin-top:1em;color:var(--muted);max-width:60ch;font-size:.98rem}
+.watch b{color:var(--lumen);font-weight:600}
+
+/* ---------- Strumenti / demo ---------- */
+.tool{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:clamp(14px,2vw,22px);display:grid;gap:14px}
+.tool-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;font:600 .72rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.tool-head .live{color:var(--lumen)}
+.stage{position:relative;background:#050507;border-radius:3px;overflow:hidden;aspect-ratio:4/3;max-width:100%}
+.stage svg,.stage canvas{display:block;width:100%;height:100%}
+.controls{display:grid;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lbl{font:600 .7rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);min-width:9.5em}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button,.btn{background:transparent;border:1px solid var(--line);border-radius:3px;padding:.4em .7em;font-size:.86rem;cursor:pointer;color:#d9d6cd}
+.seg button:hover,.btn:hover{border-color:var(--muted);color:var(--lumen)}
+.seg button[aria-pressed="true"]{background:var(--lumen);color:var(--room);border-color:var(--lumen)}
+.btn.solid{background:var(--lumen);color:var(--room);border-color:var(--lumen);font-weight:600}
+.slider{display:grid;grid-template-columns:auto minmax(0,1fr) 4.2em;gap:10px;align-items:center}
+.slider output{font:600 .85rem var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
+.readout{font:400 .86rem/1.5 var(--mono);color:var(--muted);border-top:1px solid var(--line);padding-top:12px;display:flex;flex-wrap:wrap;gap:.4em 1.4em}
+.readout b{color:var(--lumen);font-weight:600}
+.ok{color:var(--g)!important}.no{color:var(--r)!important}.wn{color:var(--warn)!important}
+
+/* ---------- Slide 1 ---------- */
+.s-title .inner{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
+@media (max-width:900px){.s-title .inner{grid-template-columns:minmax(0,1fr)}}
+.beam{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle 38vmax at var(--mx,30%) var(--my,40%),rgba(243,239,228,.09),transparent 70%)}
+.grid-bg{position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:56px 56px;
+  -webkit-mask-image:radial-gradient(circle 32vmax at var(--mx,30%) var(--my,40%),#000,transparent 75%);mask-image:radial-gradient(circle 32vmax at var(--mx,30%) var(--my,40%),#000,transparent 75%)}
+.s-title .inner{position:relative}
+.title-meta{display:grid;gap:1.1em;max-width:52ch}
+.who{display:flex;gap:2em;flex-wrap:wrap;font:400 .9rem var(--mono);color:var(--muted)}
+.who b{display:block;color:var(--lumen);font:600 1rem var(--body)}
+.focus{border-left:1px solid var(--lumen);padding-left:1em;color:#d9d6cd}
+.hint{font:400 .8rem var(--mono);color:var(--faint)}
+.hint kbd{border:1px solid var(--line);border-radius:3px;padding:.05em .4em;color:var(--muted);font-family:var(--mono)}
+#frameDemo .frame{transition:opacity .8s ease}
+#frameDemo .outside{transition:opacity .8s ease}
+#frameDemo.noframe .frame{opacity:0}
+#frameDemo.noframe .outside{opacity:1}
+#frameDemo .obj{transition:filter .8s ease}
+#frameDemo.noframe .obj{filter:drop-shadow(0 0 14px rgba(243,239,228,.55))}
+
+/* ---------- Slide 2 ---------- */
+#lightStage .room{position:absolute;inset:0;background:#050506}
+#lightStage .surf{position:absolute;left:18%;top:14%;width:64%;height:72%;border-radius:10px 10px 40% 40% / 10px 10px 18% 18%;background:var(--alb,#ecebe6)}
+#lightStage .proj{position:absolute;inset:0;mix-blend-mode:multiply}
+#lightStage .amb{position:absolute;inset:0;background:#fff;mix-blend-mode:screen;opacity:var(--amb,0)}
+#lightStage .glare{position:absolute;left:44%;top:22%;width:22%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#fff 0,rgba(255,255,255,.85) 18%,rgba(255,255,255,0) 70%);mix-blend-mode:screen;opacity:var(--gl,0);filter:blur(1px)}
+#lightStage .tag{position:absolute;left:10px;top:8px;font:600 .68rem var(--mono);letter-spacing:.1em;color:#888;text-transform:uppercase}
+
+/* ---------- Slide 3 ---------- */
+#trimSvg path{fill:none;stroke:var(--lumen);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#trimSvg .seam{stroke-width:1.4;stroke:var(--b)}
+#trimSvg .ghost{fill:#121318;stroke:none}
+
+/* ---------- Slide 6 ---------- */
+.pipe{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;counter-reset:p}
+@media (max-width:560px){.pipe{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pipe button{counter-increment:p;text-align:left;background:transparent;border:1px solid var(--line);border-radius:3px;padding:.6em .7em;cursor:pointer;display:grid;gap:.15em}
+.pipe button::before{content:"0" counter(p);font:600 .68rem var(--mono);color:var(--muted)}
+.pipe button b{font:700 .95rem var(--display);font-variation-settings:"wdth" 110}
+.pipe button span{font-size:.78rem;color:var(--muted)}
+.pipe button[aria-pressed="true"]{border-color:var(--lumen);background:rgba(243,239,228,.06)}
+.pipe-detail{font-size:.95rem;color:#d9d6cd;min-height:3em;margin:0}
+.timeline{position:relative;height:64px;background:#08090c;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.timeline .tick{position:absolute;bottom:0;width:1px;height:30%;background:var(--faint)}
+.timeline .tick.bar{height:70%;background:var(--lumen)}
+.timeline .rest{position:absolute;top:0;bottom:0;right:0;background:repeating-linear-gradient(45deg,rgba(255,182,72,.25) 0 6px,transparent 6px 12px);border-left:1px solid var(--warn)}
+.timeline .head{position:absolute;top:0;bottom:0;width:2px;background:var(--r);left:0;box-shadow:0 0 10px var(--r)}
+.tl-scale{display:flex;justify-content:space-between;font:400 .7rem var(--mono);color:var(--faint);margin-top:4px}
+.flash{width:16px;height:16px;border-radius:50%;background:var(--line);transition:background .12s ease,box-shadow .12s ease;flex:none}
+.flash.on{background:var(--lumen);box-shadow:0 0 18px var(--lumen)}
+.flash.bar.on{background:var(--r);box-shadow:0 0 18px var(--r)}
+.num{width:5em;background:#08090c;border:1px solid var(--line);border-radius:3px;padding:.35em .5em;font-family:var(--mono)}
+
+/* ---------- Slide 7 ---------- */
+.verdict{display:flex;align-items:center;gap:14px;border:1px solid var(--line);border-radius:4px;padding:12px 14px}
+.verdict .big{font:800 1.5rem var(--display);font-variation-settings:"wdth" 125;letter-spacing:.02em;text-transform:uppercase}
+.issues{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:.92rem}
+.issues li{display:grid;grid-template-columns:3.4em minmax(0,1fr);gap:8px}
+.issues li span:first-child{font:600 .72rem/1.9 var(--mono);letter-spacing:.08em}
+.noes{display:flex;flex-wrap:wrap;gap:6px;margin-top:.6em}
+.noes span{font:600 .78rem var(--mono);border:1px solid var(--r);color:var(--r);padding:.3em .55em;border-radius:3px;text-decoration:line-through;text-decoration-color:rgba(255,91,79,.6)}
+
+/* ---------- Slide 8 ---------- */
+.crit{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:1.2em;max-width:64ch}
+@media (max-width:560px){.crit{grid-template-columns:minmax(0,1fr)}}
+.crit div{border-top:1px solid var(--lumen);padding-top:.6em}
+.crit h3{margin:0 0 .25em;font:700 1.05rem var(--display);font-variation-settings:"wdth" 112}
+.crit p{margin:0;font-size:.93rem;color:#cfccc3}
+.check{display:flex;gap:.5em;align-items:center;font:400 .8rem var(--mono);color:var(--muted);margin-top:.5em;cursor:pointer}
+.check input{accent-color:var(--lumen)}
+
+/* ---------- Slide 9 ---------- */
+.qa h1{font-size:clamp(2.4rem,6vw,5rem)}
+.qa-list{display:grid;gap:.8em;max-width:56ch;padding:0;list-style:none;margin:1em 0 1.5em}
+.qa-list li{border-bottom:1px solid var(--line);padding-bottom:.8em;color:#d9d6cd}
+.qa-list b{color:var(--lumen)}
+
+/* ---------- HUD ---------- */
+.progress{position:fixed;left:0;right:0;top:0;height:2px;background:transparent;z-index:20}
+.progress span{display:block;height:100%;background:var(--lumen);width:0;transition:width .5s ease;box-shadow:0 0 12px var(--lumen)}
+.hud{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;gap:10px;padding:10px clamp(16px,3vw,28px) calc(10px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(to top,var(--room) 55%,rgba(11,12,16,0));font:400 .82rem var(--mono)}
+.hud button{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:.45em .75em;cursor:pointer;color:#d9d6cd}
+.hud button:hover{border-color:var(--muted);color:var(--lumen)}
+.hud .count{font-variant-numeric:tabular-nums;color:var(--lumen);font-weight:600}
+.hud .ttl{color:var(--muted);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:620px){.hud .opt{display:none}}
+.reg{position:fixed;inset:12px;pointer-events:none;z-index:5}
+.reg i{position:absolute;width:18px;height:18px}
+.reg i::before,.reg i::after{content:"";position:absolute;background:var(--faint)}
+.reg i::before{left:8px;top:0;width:1px;height:18px}.reg i::after{top:8px;left:0;height:1px;width:18px}
+.reg i:nth-child(1){left:0;top:0}.reg i:nth-child(2){right:0;top:0}.reg i:nth-child(3){left:0;bottom:56px}.reg i:nth-child(4){right:0;bottom:56px}
+@media (max-width:700px){.reg{display:none}}
+
+.overlay{position:fixed;inset:0;z-index:30;background:rgba(5,5,7,.94);padding:clamp(24px,5vw,60px) clamp(16px,5vw,60px);overflow-y:auto}
+.overlay h2{font-size:1.6rem;margin:0 0 1em}
+.ov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;max-width:1100px}
+.ov-grid button{text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:14px;cursor:pointer;display:grid;gap:.4em;min-height:110px;align-content:start}
+.ov-grid button:hover,.ov-grid button.cur{border-color:var(--lumen)}
+.ov-grid small{font:600 .7rem var(--mono);color:var(--muted);letter-spacing:.1em}
+.ov-grid b{font:700 1.05rem/1.2 var(--display);font-variation-settings:"wdth" 112}
+.close{position:absolute;right:clamp(16px,3vw,32px);top:clamp(16px,3vw,28px)}
+#notes{position:fixed;z-index:25;right:clamp(16px,3vw,28px);bottom:70px;width:min(420px,calc(100% - 32px));background:#1b1d25;border:1px solid var(--warn);border-radius:6px;padding:16px 18px;font-size:.95rem;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+#notes .k{font:600 .7rem var(--mono);letter-spacing:.14em;color:var(--warn);text-transform:uppercase;margin-bottom:.5em}
+#notes p{margin:0;color:#e3dfd4}
+
+@media (prefers-reduced-motion:reduce){
+  .slide,.slide.active{transition:opacity .2s ease,visibility 0s;transform:none!important}
+  *{animation:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="progress" aria-hidden="true"><span id="prog"></span></div>
+<div class="reg" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
+<main id="deck">
+
+<!-- 01 -->
+<section class="slide s-title" data-title="Dal Monitor allo Spazio" id="t1">
+  <div class="beam"></div><div class="grid-bg"></div>
+  <div class="inner">
+    <div>
+      <div class="eyebrow"><span class="cue">Cue 01</span> EDI 2 · Elaborazione Digitale dell’Immagine 2</div>
+      <h1>Dal Monitor<br>allo <em>Spazio</em></h1>
+      <div class="title-meta">
+        <p class="lede">Product &amp; Spatial Mapping su scala Desktop.</p>
+        <div class="who"><div>Docente<b>Corrado Santoro</b></div><div>Lezione<b>01 / Introduzione</b></div></div>
+        <p class="focus"><b>Focus del corso:</b> abbandonare il frame 16:9. L'inquadratura non è più la composition di After Effects, ma l'oggetto fisico nello spazio reale.</p>
+        <p class="hint">Naviga con <kbd>←</kbd> <kbd>→</kbd> o <kbd>spazio</kbd> · <kbd>G</kbd> indice · <kbd>N</kbd> note · <kbd>F</kbd> schermo intero</p>
+      </div>
+    </div>
+    <div class="tool">
+      <div class="tool-head"><span>Comp 1 · 1920 × 1080 · 25 fps</span><span class="live" id="frameState">Frame: attivo</span></div>
+      <div class="stage" style="aspect-ratio:16/10">
+        <svg id="frameDemo" viewBox="0 0 400 250" role="img" aria-label="Un riquadro 16:9 attorno a una scatola: rimuovendo il frame resta solo l'oggetto illuminato">
+          <rect width="400" height="250" fill="#050507"/>
+          <g class="frame">
+            <rect x="40" y="30" width="320" height="180" fill="#1a1c24" stroke="#f3efe4" stroke-dasharray="5 4"/>
+            <text x="44" y="24" fill="#a0a3af" font-family="JetBrains Mono, monospace" font-size="9">16:9 · composition</text>
+            <line x1="40" y1="120" x2="360" y2="120" stroke="#272a35"/><line x1="200" y1="30" x2="200" y2="210" stroke="#272a35"/>
+          </g>
+          <g class="obj">
+            <path d="M200 62 L268 101 L200 140 L132 101 Z" fill="#f3efe4"/>
+            <path d="M132 101 L200 140 L200 205 L132 166 Z" fill="#b9b5ab"/>
+            <path d="M200 140 L268 101 L268 166 L200 205 Z" fill="#d8d4c9"/>
+          </g>
+          <text class="outside" opacity="0" x="200" y="236" text-anchor="middle" fill="#a0a3af" font-family="JetBrains Mono, monospace" font-size="9">l'inquadratura è l'oggetto</text>
+        </svg>
+      </div>
+      <div class="row"><button class="btn solid" id="frameBtn" type="button">Rimuovi il frame 16:9</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 -->
+<section class="slide" data-title="Il Nero Ottico e la Fisica della Luce">
+  <div class="inner">
+    <div>
+      <div class="eyebrow"><span class="cue">Cue 02</span> Regola #1 · Fisica della luce</div>
+      <h2>Il proiettore non proietta il <em>nero</em>.</h2>
+      <ul class="points">
+        <li><b>Il nero è trasparenza.</b> In After Effects un pixel con valore RGB 0,0,0 significa “luce spenta”: il videoproiettore smette di emettere luce in quel punto.</li>
+        <li><b>Luce incidentale.</b> Il colore risultante dipende dalla superficie reale. Il mapping aggiunge luce, non vernice.</li>
+        <li><b>Assorbimento vs. riflettanza.</b> Un oggetto nero assorbe la luce annullando il contrasto. Un oggetto lucido o specchiato riflette il bulbo del proiettore e distrugge l'illusione ottica.</li>
+      </ul>
+      <div class="rule"><span class="k">La regola d'oro</span><p>Si mappa solo su superfici opache (matte) e chiare.</p></div>
+    </div>
+    <div class="tool">
+      <div class="tool-head"><span>Simulatore · luce × superficie</span><span class="live" id="matName">Bianco opaco</span></div>
+      <div class="stage" id="lightStage">
+        <div class="room"></div>
+        <div class="surf"></div>
+        <div class="amb"></div>
+        <div class="proj" id="projLayer">
+          <svg viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">
+            <rect width="400" height="300" fill="#000"/>
+            <g stroke="#fff" stroke-width="1.5" opacity=".9">
+              <path d="M40 0V300M100 0V300M160 0V300M220 0V300M280 0V300M340 0V300M0 50H400M0 110H400M0 170H400M0 230H400"/>
+            </g>
+            <g style="mix-blend-mode:screen">
+              <circle cx="170" cy="120" r="52" fill="#ff0000"/>
+              <circle cx="230" cy="120" r="52" fill="#00ff00"/>
+              <circle cx="200" cy="170" r="52" fill="#0000ff"/>
+            </g>
+            <rect x="120" y="222" width="160" height="40" fill="#000"/>
+          </svg>
+        </div>
+        <div class="glare"></div>
+        <span class="tag">Sala buia · vista spettatore</span>
+      </div>
+      <div class="controls">
+        <div class="row"><span class="lbl">Superficie</span>
+          <div class="seg" id="matSeg">
+            <button type="button" data-m="white" aria-pressed="true">Bianco opaco</button>
+            <button type="button" data-m="grey">Grigio chiaro</button>
+            <button type="button" data-m="pastel">Pastello</button>
+            <button type="button" data-m="black">Nero</button>
+            <button type="button" data-m="gloss">Plastica lucida</button>
+            <button type="button" data-m="chrome">Cromo</button>
+          </div>
+        </div>
+        <label class="slider"><span class="lbl">Proiettore</span><input id="lumIn" type="range" min="0" max="100" value="100"><output id="lumOut">100%</output></label>
+        <label class="slider"><span class="lbl">Luce ambiente</span><input id="ambIn" type="range" min="0" max="60" value="0"><output id="ambOut">0%</output></label>
+      </div>
+      <div class="readout" id="lightRead"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 -->
+<section class="slide" data-title="Case Study 1 · Scansione e Wireframe" data-enter="trim">
+  <div class="inner">
+    <div>
+      <div class="eyebrow"><span class="cue">Cue 03</span> Case study 1 · Scansione e wireframe</div>
+      <h2>Costruire la geometria <em>(Edge Tracing)</em></h2>
+      <ul class="points">
+        <li><b>Approccio.</b> Svelare l'oggetto al buio disegnandone fisicamente i contorni e le cuciture, prima di applicare qualsiasi materiale o colore.</li>
+        <li><b>Perché funziona.</b> Fissa le coordinate spaziali per l'occhio dello spettatore. Dimostra il controllo assoluto della macchina sulla superficie reale.</li>
+      </ul>
+      <p class="watch"><b>Cosa guardare:</b> l'uso dei tracciati vettoriali e l'animazione di svelamento iniziale, che in After Effects replicheremo con <b>Trim Paths / Taglia tracciati</b>.</p>
+      <div class="refs"><span class="k">Reference · chiavi di ricerca</span>
+        <div class="links">
+          <a class="chip-link" href="https://www.youtube.com/results?search_query=Nike+Air+Force+1+Projection+Mapping" target="_blank" rel="noopener">Nike Air Force 1 Projection Mapping</a>
+          <a class="chip-link" href="https://www.youtube.com/results?search_query=Asics+Gel+retail+projection+mapping" target="_blank" rel="noopener">Asics Gel retail mapping</a>
+        </div>
+      </div>
+    </div>
+    <div class="tool">
+      <div class="tool-head"><span>Livello forma › Taglia tracciati</span><span class="live" id="trimState">Fine: 100%</span></div>
+      <div class="stage">
+        <svg id="trimSvg" viewBox="0 0 400 400" role="img" aria-label="Una scatola isometrica disegnata progressivamente lungo i suoi spigoli">
+          <path class="ghost" d="M200 60 L330 135 L330 275 L200 350 L70 275 L70 135 Z"/>
+          <path d="M200 60 L330 135 L200 210 L70 135 Z" pathLength="1"/>
+          <path d="M70 135 L70 275" pathLength="1"/>
+          <path d="M200 210 L200 350" pathLength="1"/>
+          <path d="M330 135 L330 275" pathLength="1"/>
+          <path d="M70 275 L200 350 L330 275" pathLength="1"/>
+          <path class="seam" d="M70 165 L200 240 L330 165" pathLength="1"/>
+          <path class="seam" d="M135 97.5 L265 172.5" pathLength="1"/>
+          <path class="seam" d="M226 244 L304 199 L304 241 L226 286 Z" pathLength="1"/>
+        </svg>
+      </div>
+      <div class="controls">
+        <label class="slider"><span class="lbl">Inizio</span><input id="trimStart" type="range" min="0" max="100" value="0"><output id="trimStartOut">0%</output></label>
+        <label class="slider"><span class="lbl">Fine</span><input id="trimEnd" type="range" min="0" max="100" value="100"><output id="trimEndOut">100%</output></label>
+        <div class="row"><button class="btn solid" type="button" id="trimPlay">▶ Riproduci lo svelamento</button><span class="hint">Bianco: spigoli · Blu: cuciture e zona logo</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 -->
+<section class="slide" data-title="Case Study 2 · Trompe-l'œil e Fluidi">
+  <div class="inner">
+    <div>
+      <div class="eyebrow"><span class="cue">Cue 04</span> Case study 2 · Trompe-l'œil e fluidi</div>
+      <h2>Scomporre le superfici <em>(Materiali Dinamici)</em></h2>
+      <ul class="points">
+        <li><b>Approccio.</b> Separare l'oggetto in zone gerarchiche (es. etichetta vs. corpo centrale) e applicare simulazioni di materiali: liquidi, metallo, glitch.</li>
+        <li><b>Perché funziona.</b> Crea contrasto tra l'identità statica del brand e la mutazione dinamica del contenitore.</li>
+      </ul>
+      <p class="watch"><b>Cosa guardare:</b> l'effetto di svuotamento/riempimento del liquido, e come le grafiche frontali restano ferme mentre il background mappa la curvatura del vetro satinato.</p>
+      <div class="refs"><span class="k">Reference · chiavi di ricerca</span>
+        <div class="links">
+          <a class="chip-link" href="https://www.youtube.com/results?search_query=Absolut+Vodka+Projection+Mapping+Sila+Sveta" target="_blank" rel="noopener">Absolut Vodka · Sila Sveta</a>
+          <a class="chip-link" href="https://www.youtube.com/results?search_query=Hennessy+projection+mapping+box" target="_blank" rel="noopener">Hennessy mapping box</a>
+        </div>
+      </div>
+    </div>
+    <div class="tool">
+      <div class="tool-head"><span>Zone gerarchiche · A statica / B dinamica</span><span class="live" id="fluidState">Liquido</span></div>
+      <div class="stage" style="aspect-ratio:300/430;max-height:62vh;margin-inline:auto;width:100%;max-width:320px">
+        <canvas id="bottle" width="300" height="430" aria-label="Bottiglia mappata: il materiale del corpo cambia mentre l'etichetta resta ferma"></canvas>
+      </div>
+      <div class="controls">
+        <div class="row"><span class="lbl">Materiale zona B</span>
+          <div class="seg" id="fluidSeg">
+            <button type="button" data-f="liquid" aria-pressed="true">Liquido</button>
+            <button type="button" data-f="metal">Metallo</button>
+            <button type="button" data-f="glitch">Glitch</button>
+          </div>
+        </div>
+        <label class="slider"><span class="lbl">Livello</span><input id="levelIn" type="range" min="0" max="100" value="60"><output id="levelOut">Auto</output></label>
+        <div class="row"><button class="btn" type="button" id="autoBtn" aria-pressed="true">Svuota/riempi automatico: on</button><button class="btn" type="button" id="zonesBtn" aria-pressed="false">Mostra le zone</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 05 -->
+<section class="slide" data-title="Case Study 3 · L'Illusione della Profondità">
+  <div class="inner">
+    <div>
+      <div class="eyebrow"><span class="cue">Cue 05</span> Case study 3 · L'illusione della profondità</div>
+      <h2>Sfondare il volume <em>(Depth Illusion)</em></h2>
+      <ul class="points">
+        <li><b>Approccio.</b> Alterare la percezione della tridimensionalità: far sembrare concavo un oggetto convesso, o viceversa.</li>
+        <li><b>Perché funziona.</b> Usa l'ombra virtuale e finte luci incidenti per “imbrogliare” il cervello. Pura illusione anamorfica.</li>
+      </ul>
+      <p class="watch"><b>Cosa guardare:</b> il rigore assoluto del bianco e nero. L'impatto visivo si ottiene dominando le ombre, non saturando i colori.</p>
+      <div class="refs"><span class="k">Reference · link diretto</span>
+        <div class="links">
+          <a class="chip-link" href="https://joanielemercier.com/origami" target="_blank" rel="noopener">Joanie Lemercier · Origami</a>
+          <a class="chip-link" href="https://www.youtube.com/results?search_query=Joanie+Lemercier+Origami+paper+projection+mapping" target="_blank" rel="noopener">Paper projection mapping</a>
+        </div>
+      </div>
+    </div>
+    <div class="tool">
+      <div class="tool-head"><span>Luce virtuale · solo scala di grigi</span><span class="live" id="depthState">Lettura: convesso</span></div>
+      <div class="stage" id="depthStage" style="cursor:crosshair">
+        <svg id="depthSvg" viewBox="0 0 400 300" role="img" aria-label="Una tassellatura di cubi isometrici ombreggiati da una luce virtuale"></svg>
+      </div>
+      <div class="controls">
+        <label class="slider"><span class="lbl">Direzione luce</span><input id="angIn" type="range" min="0" max="359" value="235"><output id="angOut">235°</output></label>
+        <div class="row"><button class="btn solid" type="button" id="invBtn" aria-pressed="false">Inverti le ombre</button><span class="hint">Muovi il puntatore sulla scena per spostare la luce</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 -->
+<section class="slide" data-title="Il Brief di Progetto">
+  <div class="inner">
+    <div>
+      <div class="eyebrow"><span class="cue">Cue 06</span> Il brief di progetto · EDI 2</div>
+      <h2>Il progetto individuale: <em>Product Mapping 30 sec</em></h2>
+      <ul class="points">
+        <li><b>Obiettivo.</b> Trasformare un oggetto fisico inanimato in un display dinamico attraverso un'animazione in loop seamless.</li>
+        <li><b>Strumenti.</b> Photoshop (Maschera UV Master) → After Effects (Animazione &amp; Illusione) → MadMapper (Calibrazione Spaziale) → Camera (Documentazione video).</li>
+        <li><b>Sound design.</b> 30 secondi di animazione strettamente ancorati a una traccia ritmica/ambient: bpm costanti, marcatori visivi sui transienti audio.</li>
+      </ul>
+    </div>
+    <div class="tool">
+      <div class="tool-head"><span>Pipeline</span><span class="live">4 passaggi</span></div>
+      <div class="pipe" id="pipe">
+        <button type="button" data-i="0" aria-pressed="true"><b>Photoshop</b><span>Maschera UV Master</span></button>
+        <button type="button" data-i="1"><b>After Effects</b><span>Animazione &amp; Illusione</span></button>
+        <button type="button" data-i="2"><b>MadMapper</b><span>Calibrazione Spaziale</span></button>
+        <button type="button" data-i="3"><b>Camera</b><span>Documentazione video</span></button>
+      </div>
+      <p class="pipe-detail" id="pipeDetail"></p>
+      <div class="tool-head" style="border-top:1px solid var(--line);padding-top:14px"><span>Calcolatore loop · 30 s</span><span class="live" id="loopState"></span></div>
+      <div class="row">
+        <label class="lbl" for="bpmNum">Tempo (BPM)</label>
+        <input class="num" id="bpmNum" type="number" min="60" max="180" value="120">
+        <input id="bpmIn" type="range" min="60" max="180" value="120" style="flex:1;min-width:120px" aria-label="BPM">
+      </div>
+      <div>
+        <div class="timeline" id="tl"><div class="head" id="tlHead"></div></div>
+        <div class="tl-scale"><span>0 s</span><span>10 s</span><span>20 s</span><span>30 s</span></div>
+      </div>
+      <div class="row">
+        <button class="btn solid" type="button" id="tlPlay">▶ Play</button>
+        <button class="btn" type="button" id="clickBtn" aria-pressed="false">Click metronomo: off</button>
+        <span class="flash" id="flBeat" title="beat"></span><span class="flash bar" id="flBar" title="battuta"></span>
+        <span class="hint" id="tlTime">0.0 s</span>
+      </div>
+      <div class="readout" id="loopRead"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 07 -->
+<section class="slide" data-title="I Vincoli Fisici dell'Oggetto" id="checker">
+  <div class="inner">
+    <div>
+      <div class="eyebrow"><span class="cue">Cue 07</span> Cosa portare per la Week 2</div>
+      <h2>I vincoli fisici dell'<em>oggetto</em></h2>
+      <p class="lede">Scegliere l'oggetto sbagliato significa compromettere 15 settimane di corso.</p>
+      <ul class="points">
+        <li><b>Dimensioni.</b> Scala desktop. Minimo 15×15 cm, massimo 30×30 cm.</li>
+        <li><b>Colore e finitura.</b> Rigorosamente opaco/matte. Bianco, grigio chiaro o pastello desaturato.</li>
+        <li><b>Morfologia.</b> Volumi chiari o scomparti leggibili: sneaker, packaging rigido, controller MIDI verniciato, scultura geometrica, busto low-poly.</li>
+      </ul>
+      <div class="refs"><span class="k">I no assoluti</span>
+        <div class="noes"><span>Vetro</span><span>Cromo</span><span>Specchi</span><span>Nero assoluto</span><span>Plastica lucida</span><span>Sfere lisce senza spigoli</span></div>
+      </div>
+    </div>
+    <div class="tool">
+      <div class="tool-head"><span>Checker oggetto · Week 2</span><span class="live">Prova un'idea</span></div>
+      <div class="row"><span class="lbl">Esempi</span>
+        <div class="seg" id="presets">
+          <button type="button" data-p="guitar">Chitarra rossa lucida</button>
+          <button type="button" data-p="bottle">Bottiglia di vetro</button>
+          <button type="button" data-p="sneaker">Sneaker high-top bianca</button>
+          <button type="button" data-p="bust">Busto low-poly in gesso</button>
+          <button type="button" data-p="midi">Controller MIDI verniciato</button>
+          <button type="button" data-p="ball">Sfera di polistirolo</button>
+        </div>
+      </div>
+      <label class="slider"><span class="lbl">Larghezza</span><input id="cW" type="range" min="5" max="120" value="22"><output id="cWo">22 cm</output></label>
+      <label class="slider"><span class="lbl">Altezza</span><input id="cH" type="range" min="5" max="120" value="22"><output id="cHo">22 cm</output></label>
+      <div class="row"><span class="lbl">Finitura</span><div class="seg" data-k="fin">
+        <button type="button" data-v="opaco" aria-pressed="true">Opaco</button><button type="button" data-v="satinato">Satinato</button><button type="button" data-v="lucido">Lucido</button><button type="button" data-v="cromo">Cromo/specchio</button><button type="button" data-v="vetro">Vetro</button></div></div>
+      <div class="row"><span class="lbl">Colore</span><div class="seg" data-k="col">
+        <button type="button" data-v="bianco" aria-pressed="true">Bianco</button><button type="button" data-v="grigio">Grigio chiaro</button><button type="button" data-v="pastello">Pastello desaturato</button><button type="button" data-v="saturo">Colore saturo</button><button type="button" data-v="nero">Nero</button><button type="button" data-v="trasparente">Trasparente</button></div></div>
+      <div class="row"><span class="lbl">Morfologia</span><div class="seg" data-k="morph">
+        <button type="button" data-v="volumi" aria-pressed="true">Volumi e spigoli</button><button type="button" data-v="scomparti">Scomparti leggibili</button><button type="button" data-v="liscia">Liscia, senza spigoli</button></div></div>
+      <div class="verdict"><span class="big" id="vBig">Approvato</span><span class="hint" id="vSub"></span></div>
+      <ul class="issues" id="vList"></ul>
+    </div>
+  </div>
+</section>
+
+<!-- 08 -->
+<section class="slide" data-title="Deliverable e Consegne" data-notes="Subito dopo questa presentazione teorica, lascia il tempo per una sessione aperta di Q&amp;A per filtrare le idee folli. Gli studenti inizieranno subito a proporre chitarre elettriche rosse lucide o bottiglie di vetro trasparente: bloccali e reindirizzali verso superfici opache e trattabili. Il checker alla slide 07 serve proprio a questo.">
+  <div class="inner">
+    <div>
+      <div class="eyebrow"><span class="cue">Cue 08</span> Deliverable e consegne</div>
+      <h2>Cosa valuteremo alla <em>Week 15</em></h2>
+      <div class="crit">
+        <div><h3>Fitting precision</h3><p>La maschera non deve debordare e le linee devono aderire perfettamente agli spigoli reali.</p><label class="check"><input type="checkbox" data-c="0"> verificato</label></div>
+        <div><h3>Motion &amp; sync</h3><p>Fluidità del motion design e perfetta sincronizzazione temporale con il sound design.</p><label class="check"><input type="checkbox" data-c="1"> verificato</label></div>
+        <div><h3>Master video</h3><p>Esportazione del master renderizzato (ProRes / H.264 ad alto bitrate).</p><label class="check"><input type="checkbox" data-c="2"> verificato</label></div>
+        <div><h3>Documentazione set</h3><p>Ripresa video finale dell'oggetto fisicamente mappato al buio: 2 cicli di loop a camera fissa.</p><label class="check"><input type="checkbox" data-c="3"> verificato</label></div>
+      </div>
+    </div>
+    <div class="tool">
+      <div class="tool-head"><span>Fitting precision · test di calibrazione</span><span class="live" id="fitState">Aderente</span></div>
+      <div class="stage">
+        <svg id="fitSvg" viewBox="0 0 400 300" role="img" aria-label="Maschera proiettata sovrapposta allo spigolo reale di un oggetto; l'eccesso viene evidenziato in rosso">
+          <defs>
+            <path id="objShape" d="M120 70 L280 70 L320 150 L280 230 L120 230 L80 150 Z"/>
+            <mask id="outsideMask"><rect width="400" height="300" fill="#fff"/><use href="#objShape" fill="#000"/></mask>
+            <clipPath id="insideClip"><use href="#objShape"/></clipPath>
+          </defs>
+          <rect width="400" height="300" fill="#050507"/>
+          <use href="#objShape" fill="#2a2c33"/>
+          <g id="fitMask">
+            <g clip-path="url(#insideClip)"><use href="#objShape" fill="#f3efe4" opacity=".85" id="fitIn"/></g>
+            <g mask="url(#outsideMask)"><use href="#objShape" fill="#ff5b4f" id="fitOut"/></g>
+          </g>
+          <use href="#objShape" fill="none" stroke="#5c8eff" stroke-width="1.2" stroke-dasharray="4 3"/>
+          <text x="12" y="20" fill="#a0a3af" font-family="JetBrains Mono, monospace" font-size="10">BLU: spigolo reale · ROSSO: luce che deborda</text>
+        </svg>
+      </div>
+      <div class="controls">
+        <label class="slider"><span class="lbl">Errore orizz.</span><input id="fitX" type="range" min="-12" max="12" value="0"><output id="fitXo">0 px</output></label>
+        <label class="slider"><span class="lbl">Errore scala</span><input id="fitS" type="range" min="-6" max="6" value="0"><output id="fitSo">0%</output></label>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 09 -->
+<section class="slide qa" data-title="Q&amp;A · Filtro delle idee" data-notes="Usa il checker (slide 07) dal vivo con le proposte degli studenti: chitarre lucide, bottiglie di vetro, sfere lisce. Reindirizza ogni idea bocciata verso una variante opaca e chiara dello stesso concept (es. bottiglia → packaging rigido bianco della stessa marca).">
+  <div class="inner" style="grid-template-columns:minmax(0,1fr)">
+    <div>
+      <div class="eyebrow"><span class="cue">Cue 09</span> Laboratorio · sessione aperta</div>
+      <h1>Domande <em>&amp;</em> idee</h1>
+      <ul class="qa-list">
+        <li><b>Che oggetto state pensando di portare?</b> Diciamolo ad alta voce e passiamolo al checker.</li>
+        <li><b>È opaco e chiaro?</b> Se riflette la lampada di un telefono, rifletterà anche il proiettore.</li>
+        <li><b>Ha spigoli da tracciare?</b> Senza spigoli la maschera non ha riferimenti.</li>
+        <li><b>Entra in 30×30 cm?</b> Scala desktop, niente di più.</li>
+      </ul>
+      <div class="row"><button class="btn solid" type="button" id="toChecker">Apri il checker oggetto</button><button class="btn" type="button" id="toStart">Torna all'inizio</button></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<nav class="hud" aria-label="Navigazione slide">
+  <button type="button" id="prev" aria-label="Slide precedente">←</button>
+  <span class="count" id="count">01 / 09</span>
+  <button type="button" id="next" aria-label="Slide successiva">→</button>
+  <span class="ttl" id="ttl"></span>
+  <button type="button" id="ovBtn">Indice</button>
+  <button type="button" class="opt" id="notesBtn" aria-pressed="false">Note</button>
+  <button type="button" class="opt" id="fsBtn">Schermo intero</button>
+</nav>
+
+<div class="overlay" id="overview" hidden>
+  <button type="button" class="btn close" id="ovClose">Chiudi · Esc</button>
+  <h2>Lezione 01 · Indice</h2>
+  <div class="ov-grid" id="ovGrid"></div>
+</div>
+
+<aside id="notes" hidden aria-live="polite"><div class="k">Nota per il docente</div><p id="notesText"></p></aside>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+  const slides = $$('.slide');
+  const N = slides.length;
+  const pad = n => String(n).padStart(2, '0');
+  let cur = 0;
+  const enterHooks = {};
+
+  /* ---------- Navigazione ---------- */
+  function go(n) {
+    n = Math.max(0, Math.min(N - 1, n));
+    slides.forEach((s, k) => {
+      s.classList.toggle('active', k === n);
+      s.classList.toggle('past', k < n);
+      s.inert = k !== n;
+      s.setAttribute('aria-hidden', k !== n);
+    });
+    cur = n;
+    $('#count').textContent = pad(n + 1) + ' / ' + pad(N);
+    $('#ttl').textContent = slides[n].dataset.title;
+    $('#prog').style.width = ((n + 1) / N * 100) + '%';
+    $('#notesText').textContent = slides[n].dataset.notes || 'Nessuna nota per questa slide.';
+    try { history.replaceState(null, '', '#s' + (n + 1)); } catch (e) {}
+    const h = slides[n].dataset.enter; if (h && enterHooks[h]) enterHooks[h]();
+    $$('#ovGrid button').forEach((b, k) => b.classList.toggle('cur', k === n));
+  }
+  const isField = el => el && (el.matches('input,select,textarea') || el.isContentEditable);
+  document.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = e.target;
+    if (e.key === 'Escape') { $('#overview').hidden = true; $('#notes').hidden = true; $('#notesBtn').setAttribute('aria-pressed', 'false'); return; }
+    if (isField(t)) return;
+    if (['ArrowRight', 'PageDown'].includes(e.key) || (e.key === ' ' && !t.matches('button'))) { e.preventDefault(); go(cur + 1); }
+    else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); go(cur - 1); }
+    else if (e.key === 'Home') go(0);
+    else if (e.key === 'End') go(N - 1);
+    else if (e.key === 'g' || e.key === 'G' || e.key === 'o') toggleOverview();
+    else if (e.key === 'n' || e.key === 'N') toggleNotes();
+    else if (e.key === 'f' || e.key === 'F') toggleFs();
+  });
+  let tx = 0, ty = 0, tTarget = null;
+  document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; tTarget = e.target; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (tTarget && tTarget.closest('input,.stage,.timeline')) return;
+    const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) go(cur + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+  $('#prev').onclick = () => go(cur - 1);
+  $('#next').onclick = () => go(cur + 1);
+
+  const ovGrid = $('#ovGrid');
+  slides.forEach((s, k) => {
+    const b = document.createElement('button'); b.type = 'button';
+    b.innerHTML = '<small>CUE ' + pad(k + 1) + '</small><b></b>';
+    b.querySelector('b').textContent = s.dataset.title;
+    b.onclick = () => { go(k); $('#overview').hidden = true; };
+    ovGrid.appendChild(b);
+  });
+  function toggleOverview() { const o = $('#overview'); o.hidden = !o.hidden; if (!o.hidden) ovGrid.children[cur].focus(); }
+  function toggleNotes() { const n = $('#notes'); n.hidden = !n.hidden; $('#notesBtn').setAttribute('aria-pressed', String(!n.hidden)); }
+  async function toggleFs() {
+    try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); } catch (e) {}
+  }
+  $('#ovBtn').onclick = toggleOverview; $('#ovClose').onclick = toggleOverview;
+  $('#notesBtn').onclick = toggleNotes; $('#fsBtn').onclick = toggleFs;
+  $('#toChecker').onclick = () => go(slides.indexOf($('#checker')));
+  $('#toStart').onclick = () => go(0);
+
+  /* segmented helper */
+  function seg(container, cb) {
+    container.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      container.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      cb(b);
+    });
+  }
+  const setSeg = (container, attr, val) => container.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset[attr] === val)));
+
+  /* ---------- 01 · beam + frame ---------- */
+  const t1 = $('#t1');
+  t1.addEventListener('pointermove', e => {
+    const r = t1.getBoundingClientRect();
+    t1.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+    t1.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
+  });
+  $('#frameBtn').onclick = () => {
+    const d = $('#frameDemo'); const off = d.classList.toggle('noframe');
+    $('#frameBtn').textContent = off ? 'Ripristina il frame 16:9' : 'Rimuovi il frame 16:9';
+    $('#frameState').textContent = off ? 'Frame: oggetto fisico' : 'Frame: attivo';
+  };
+
+  /* ---------- 02 · luce × superficie ---------- */
+  const MATS = {
+    white:  { n: 'Bianco opaco', alb: '#ecebe6', gl: 0,   refl: 85, v: ['ok', 'Mappabile'] },
+    grey:   { n: 'Grigio chiaro opaco', alb: '#b8bab9', gl: 0, refl: 55, v: ['ok', 'Mappabile'] },
+    pastel: { n: 'Pastello desaturato', alb: '#d9d2e2', gl: 0, refl: 70, v: ['ok', 'Mappabile'] },
+    black:  { n: 'Nero opaco', alb: '#161616', gl: 0,   refl: 4,  v: ['no', 'Assorbe la luce: contrasto annullato'] },
+    gloss:  { n: 'Plastica lucida', alb: '#cfcfcf', gl: .95, refl: 60, v: ['no', 'Hotspot del bulbo visibile'] },
+    chrome: { n: 'Cromo / specchio', alb: '#2c2f34', gl: 1, refl: 8, v: ['no', 'Riflette il proiettore, nessuna immagine'] }
+  };
+  let mat = 'white';
+  const ls = $('#lightStage');
+  function light() {
+    const m = MATS[mat], lum = +$('#lumIn').value / 100, amb = +$('#ambIn').value / 100;
+    ls.style.setProperty('--alb', m.alb);
+    ls.style.setProperty('--gl', (m.gl * lum).toFixed(2));
+    ls.style.setProperty('--amb', (amb * .55).toFixed(2));
+    $('#projLayer').style.filter = 'brightness(' + lum + ')';
+    $('#lumOut').textContent = Math.round(lum * 100) + '%';
+    $('#ambOut').textContent = Math.round(amb * 100) + '%';
+    $('#matName').textContent = m.n;
+    const contrast = amb > 0 ? Math.max(1, (lum + amb) / amb) : Infinity;
+    $('#lightRead').innerHTML =
+      '<span>Riflettanza ≈ <b>' + m.refl + '%</b></span>' +
+      '<span>Contrasto ' + (contrast === Infinity ? '<b>massimo (sala buia)</b>' : '<b>' + contrast.toFixed(1) + ':1</b>') + '</span>' +
+      '<span>Verdetto: <b class="' + m.v[0] + '">' + m.v[1] + '</b></span>' +
+      '<span>Pixel 0,0,0 = <b>luce spenta</b></span>';
+  }
+  seg($('#matSeg'), b => { mat = b.dataset.m; light(); });
+  $('#lumIn').oninput = light; $('#ambIn').oninput = light;
+  light();
+
+  /* ---------- 03 · Trim paths ---------- */
+  const trimPaths = $$('#trimSvg path:not(.ghost)');
+  function trimSet(s, e, perPath) {
+    trimPaths.forEach((p, k) => {
+      let ss = s, ee = e;
+      if (perPath) { ee = perPath[k]; ss = 0; }
+      const len = Math.max(0, ee - ss);
+      p.style.strokeDasharray = len + ' 2';
+      p.style.strokeDashoffset = -ss;
+      p.style.opacity = len <= 0.001 ? 0 : 1;
+    });
+  }
+  function trimFromSliders() {
+    const s = +$('#trimStart').value / 100, e = +$('#trimEnd').value / 100;
+    $('#trimStartOut').textContent = Math.round(s * 100) + '%';
+    $('#trimEndOut').textContent = Math.round(e * 100) + '%';
+    $('#trimState').textContent = 'Fine: ' + Math.round(e * 100) + '%';
+    trimSet(s, e);
+  }
+  $('#trimStart').oninput = () => { trimAnim = null; trimFromSliders(); };
+  $('#trimEnd').oninput = () => { trimAnim = null; trimFromSliders(); };
+  let trimAnim = null;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function playTrim() {
+    if (reduced) { $('#trimStart').value = 0; $('#trimEnd').value = 100; trimFromSliders(); return; }
+    const t0 = performance.now(), id = {}; trimAnim = id;
+    const ease = x => 1 - Math.pow(1 - x, 3);
+    (function step(now) {
+      if (trimAnim !== id) return;
+      const t = (now - t0) / 1000;
+      const vals = trimPaths.map((p, k) => ease(Math.min(1, Math.max(0, (t - k * 0.22) / 0.9))));
+      trimSet(0, 1, vals);
+      const total = Math.min(1, t / (0.22 * (trimPaths.length - 1) + 0.9));
+      $('#trimState').textContent = 'Fine: ' + Math.round(total * 100) + '%';
+      if (total < 1) requestAnimationFrame(step);
+      else { $('#trimStart').value = 0; $('#trimEnd').value = 100; trimFromSliders(); }
+    })(t0);
+  }
+  $('#trimPlay').onclick = playTrim;
+  enterHooks.trim = playTrim;
+  trimFromSliders();
+
+  /* ---------- 04 · Bottiglia ---------- */
+  const cv = $('#bottle'), cx = cv.getContext('2d');
+  const W = 300, H = 430, dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = W * dpr; cv.height = H * dpr; cx.scale(dpr, dpr);
+  const bottlePath = new Path2D('M125 30 L175 30 L175 95 C175 125 230 130 230 170 L230 390 Q230 405 215 405 L85 405 Q70 405 70 390 L70 170 C70 130 125 125 125 95 Z');
+  let fluid = 'liquid', auto = true, zones = false, glitchSeed = [], glitchT = 0;
+  seg($('#fluidSeg'), b => { fluid = b.dataset.f; $('#fluidState').textContent = b.textContent; });
+  $('#levelIn').oninput = () => { auto = false; syncAuto(); };
+  function syncAuto() {
+    $('#autoBtn').setAttribute('aria-pressed', String(auto));
+    $('#autoBtn').textContent = 'Svuota/riempi automatico: ' + (auto ? 'on' : 'off');
+    $('#levelOut').textContent = auto ? 'Auto' : $('#levelIn').value + '%';
+  }
+  $('#autoBtn').onclick = () => { auto = !auto; syncAuto(); };
+  $('#zonesBtn').onclick = () => { zones = !zones; $('#zonesBtn').setAttribute('aria-pressed', String(zones)); $('#zonesBtn').textContent = zones ? 'Nascondi le zone' : 'Mostra le zone'; };
+  function drawBottle(t) {
+    let level = auto ? 0.5 + 0.42 * Math.sin(t * 0.7) : +$('#levelIn').value / 100;
+    if (auto) $('#levelIn').value = Math.round(level * 100);
+    const top = 30, bottom = 405, ly = bottom - level * (bottom - top);
+    cx.clearRect(0, 0, W, H);
+    cx.fillStyle = '#050507'; cx.fillRect(0, 0, W, H);
+    cx.save(); cx.clip(bottlePath);
+    cx.fillStyle = 'rgba(243,239,228,0.08)'; cx.fillRect(0, 0, W, H);           // vetro satinato
+    const wave = x => ly + Math.sin(x * 0.045 + t * 2.4) * 5 + Math.sin(x * 0.02 - t * 1.3) * 3;
+    cx.beginPath(); cx.moveTo(60, H);
+    for (let x = 60; x <= 240; x += 4) cx.lineTo(x, fluid === 'liquid' ? wave(x) : ly);
+    cx.lineTo(240, H); cx.closePath();
+    if (fluid === 'liquid') {
+      const g = cx.createLinearGradient(0, ly, 0, bottom);
+      g.addColorStop(0, '#b9d0ff'); g.addColorStop(.25, '#5c8eff'); g.addColorStop(1, '#1d2e6b');
+      cx.fillStyle = g; cx.fill();
+      cx.fillStyle = 'rgba(255,255,255,.55)';
+      for (let i = 0; i < 14; i++) { const bx = 80 + ((i * 53) % 140), by = bottom - ((t * 40 + i * 37) % Math.max(1, bottom - ly)); cx.beginPath(); cx.arc(bx, by, 1.6 + (i % 3), 0, 7); cx.fill(); }
+    } else if (fluid === 'metal') {
+      const off = (t * 60) % 120;
+      const g = cx.createLinearGradient(off - 120, 0, off + 240, 0);
+      ['#3a3d44', '#d8dbe0', '#6b6f78', '#f3efe4', '#41444b', '#c4c7cc', '#3a3d44'].forEach((c, i, a) => g.addColorStop(i / (a.length - 1), c));
+      cx.fillStyle = g; cx.fill();
+      cx.save(); cx.clip(); cx.strokeStyle = 'rgba(0,0,0,.18)';
+      for (let y = Math.floor(ly); y < bottom; y += 3) { cx.beginPath(); cx.moveTo(60, y); cx.lineTo(240, y); cx.stroke(); } cx.restore();
+    } else {
+      cx.fillStyle = '#101116'; cx.fill();
+      if (t - glitchT > 0.08 || !glitchSeed.length) {
+        glitchT = t; glitchSeed = Array.from({ length: 16 }, () => [Math.random(), Math.random(), Math.random(), Math.floor(Math.random() * 4)]);
+      }
+      cx.save(); cx.clip();
+      const cols = ['#ff5b4f', '#48dc8c', '#5c8eff', '#f3efe4'];
+      glitchSeed.forEach(([a, b, c, k]) => { cx.fillStyle = cols[k]; cx.globalAlpha = .85; cx.fillRect(60 + a * 150 - 40, ly + b * (bottom - ly), 40 + c * 140, 2 + c * 14); });
+      cx.globalAlpha = 1; cx.restore();
+    }
+    cx.restore();
+    // Zona A · etichetta statica
+    cx.fillStyle = '#f3efe4'; cx.fillRect(95, 235, 110, 80);
+    cx.fillStyle = '#0b0c10'; cx.textAlign = 'center';
+    cx.font = '800 22px Archivo, "Arial Narrow", sans-serif'; cx.fillText('ÆTHER', 150, 278);
+    cx.font = '600 9px "JetBrains Mono", monospace'; cx.fillText('N° 01 · 70 cl', 150, 298);
+    cx.strokeStyle = 'rgba(243,239,228,.55)'; cx.lineWidth = 1.2; cx.stroke(bottlePath);
+    if (zones) {
+      cx.setLineDash([5, 4]); cx.lineWidth = 1.5;
+      cx.strokeStyle = '#ffb648'; cx.strokeRect(91, 231, 118, 88);
+      cx.strokeStyle = '#ff5b4f'; cx.stroke(bottlePath); cx.setLineDash([]);
+      cx.font = '600 10px "JetBrains Mono", monospace'; cx.textAlign = 'left';
+      cx.fillStyle = '#ffb648'; cx.fillText('A · ETICHETTA (statica)', 92, 226);
+      cx.fillStyle = '#ff5b4f'; cx.fillText('B · CORPO (dinamico)', 8, 20);
+    }
+  }
+
+  /* ---------- 05 · Depth ---------- */
+  const dsvg = $('#depthSvg'), NS = 'http://www.w3.org/2000/svg';
+  (function buildHex() {
+    const s = 34, w = s * Math.sqrt(3), faces = [];
+    for (let r = -1; r < 8; r++) for (let c = -1; c < 9; c++) {
+      const x = c * w + (r % 2 ? w / 2 : 0), y = r * s * 1.5, h = w / 2;
+      const T = [x, y - s], UR = [x + h, y - s / 2], LR = [x + h, y + s / 2], B = [x, y + s], LL = [x - h, y + s / 2], UL = [x - h, y - s / 2], C = [x, y];
+      const pts = a => a.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+      faces.push(['ft', pts([T, UR, C, UL])], ['fl', pts([UL, C, B, LL])], ['fr', pts([C, UR, LR, B])]);
+    }
+    dsvg.innerHTML = faces.map(([c, p]) => '<polygon class="' + c + '" points="' + p + '"/>').join('') +
+      '<circle id="lightDot" r="7" fill="#fff"/><circle id="lightHalo" r="16" fill="none" stroke="#fff" stroke-opacity=".4"/>';
+  })();
+  let inv = false;
+  function depth(deg) {
+    const a = deg * Math.PI / 180, L = [Math.cos(a), Math.sin(a)];
+    const n = { ft: [0, -1], fl: [-0.866, 0.5], fr: [0.866, 0.5] };
+    const shade = {};
+    for (const k in n) {
+      let b = 0.5 + 0.48 * (n[k][0] * L[0] + n[k][1] * L[1]);
+      if (inv) b = 1 - b;
+      const v = Math.round(18 + b * 222); shade[k] = 'rgb(' + v + ',' + v + ',' + v + ')';
+    }
+    dsvg.querySelectorAll('polygon').forEach(p => p.setAttribute('fill', shade[p.getAttribute('class')]));
+    const r = 125;
+    ['#lightDot', '#lightHalo'].forEach(id => { const el = dsvg.querySelector(id); el.setAttribute('cx', 200 + Math.cos(a) * r * 1.3); el.setAttribute('cy', 150 + Math.sin(a) * r); });
+    $('#angOut').textContent = Math.round(deg) + '°';
+    $('#depthState').textContent = 'Lettura: ' + (inv ? 'concavo' : 'convesso');
+  }
+  $('#angIn').oninput = () => depth(+$('#angIn').value);
+  $('#invBtn').onclick = () => { inv = !inv; $('#invBtn').setAttribute('aria-pressed', String(inv)); $('#invBtn').textContent = inv ? 'Ripristina le ombre' : 'Inverti le ombre'; depth(+$('#angIn').value); };
+  $('#depthStage').addEventListener('pointermove', e => {
+    const r = e.currentTarget.getBoundingClientRect();
+    let d = Math.atan2(e.clientY - r.top - r.height / 2, e.clientX - r.left - r.width / 2) * 180 / Math.PI;
+    d = (d + 360) % 360; $('#angIn').value = Math.round(d); depth(d);
+  });
+  depth(235);
+
+  /* ---------- 06 · Pipeline + loop ---------- */
+  const PIPE = [
+    'Photoshop · Maschera UV Master: il template piatto dell’oggetto visto dal proiettore, con ogni zona (spigoli, scomparti, etichetta) su un livello separato.',
+    'After Effects · Animazione & Illusione: si anima dentro la maschera. Trim Paths per gli spigoli, materiali dinamici per le superfici, finte ombre per la profondità.',
+    'MadMapper · Calibrazione Spaziale: il master viene deformato e agganciato agli spigoli reali, finché la luce non deborda più.',
+    'Camera · Documentazione video: ripresa al buio a camera fissa, almeno 2 cicli completi di loop.'
+  ];
+  seg($('#pipe'), b => $('#pipeDetail').textContent = PIPE[+b.dataset.i]);
+  $('#pipeDetail').textContent = PIPE[0];
+
+  const tl = $('#tl'), head = $('#tlHead');
+  let bpm = 120;
+  function loop() {
+    bpm = Math.max(60, Math.min(180, Math.round(+$('#bpmNum').value || 120)));
+    const beats = bpm / 2, bars = beats / 4, seamless = Number.isInteger(bars);
+    tl.querySelectorAll('.tick,.rest').forEach(x => x.remove());
+    for (let k = 0; k * 60 / bpm < 30 - 1e-6; k++) {
+      const d = document.createElement('div'); d.className = 'tick' + (k % 4 === 0 ? ' bar' : '');
+      d.style.left = (k * 60 / bpm / 30 * 100) + '%'; tl.appendChild(d);
+    }
+    if (!seamless) {
+      const lastBar = Math.floor(bars) * 4 * 60 / bpm;
+      const r = document.createElement('div'); r.className = 'rest';
+      r.style.left = (lastBar / 30 * 100) + '%'; tl.appendChild(r);
+    }
+    const lo = Math.floor(bpm / 8) * 8, hi = lo + 8;
+    const fpb = 25 * 60 / bpm;
+    $('#loopState').innerHTML = seamless ? '<span class="ok">Loop seamless</span>' : '<span class="no">Il loop si spezza</span>';
+    $('#loopRead').innerHTML =
+      '<span>Beat in 30 s: <b>' + (Number.isInteger(beats) ? beats : beats.toFixed(1)) + '</b></span>' +
+      '<span>Battute 4/4: <b class="' + (seamless ? 'ok' : 'no') + '">' + (seamless ? bars : bars.toFixed(2).replace('.', ',')) + '</b></span>' +
+      '<span>Frame per beat @25 fps: <b>' + (Number.isInteger(fpb) ? fpb : fpb.toFixed(2).replace('.', ',')) + '</b></span>' +
+      (seamless ? '' : '<span>Prova <b>' + Math.max(64, lo) + '</b> o <b>' + Math.min(176, hi) + '</b> BPM per battute intere</span>');
+  }
+  $('#bpmNum').oninput = () => { $('#bpmIn').value = $('#bpmNum').value; loop(); };
+  $('#bpmIn').oninput = () => { $('#bpmNum').value = $('#bpmIn').value; loop(); };
+  loop();
+  let playing = false, playT0 = 0, lastBeat = -1, actx = null, clickOn = false;
+  function click(acc) {
+    if (!clickOn) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.frequency.value = acc ? 1600 : 1000; g.gain.setValueAtTime(.25, actx.currentTime); g.gain.exponentialRampToValueAtTime(.001, actx.currentTime + .06);
+      o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + .07);
+    } catch (e) {}
+  }
+  $('#clickBtn').onclick = () => { clickOn = !clickOn; $('#clickBtn').setAttribute('aria-pressed', String(clickOn)); $('#clickBtn').textContent = 'Click metronomo: ' + (clickOn ? 'on' : 'off'); };
+  $('#tlPlay').onclick = () => {
+    playing = !playing; $('#tlPlay').textContent = playing ? '■ Stop' : '▶ Play';
+    if (playing) { playT0 = performance.now(); lastBeat = -1; if (actx && actx.state === 'suspended') actx.resume(); }
+    else { head.style.left = '0'; $('#tlTime').textContent = '0.0 s'; }
+  };
+  function tickTimeline(now) {
+    if (!playing) return;
+    const t = ((now - playT0) / 1000) % 30;
+    head.style.left = (t / 30 * 100) + '%';
+    $('#tlTime').textContent = t.toFixed(1) + ' s';
+    const beat = Math.floor(t / (60 / bpm));
+    if (beat !== lastBeat) {
+      lastBeat = beat; const isBar = beat % 4 === 0;
+      const el = isBar ? $('#flBar') : $('#flBeat'); el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 110);
+      click(isBar);
+    }
+  }
+
+  /* ---------- 07 · Checker ---------- */
+  const st = { w: 22, h: 22, fin: 'opaco', col: 'bianco', morph: 'volumi' };
+  const PRE = {
+    guitar:  { w: 100, h: 36, fin: 'lucido', col: 'saturo', morph: 'volumi' },
+    bottle:  { w: 8, h: 30, fin: 'vetro', col: 'trasparente', morph: 'volumi' },
+    sneaker: { w: 30, h: 15, fin: 'opaco', col: 'bianco', morph: 'volumi' },
+    bust:    { w: 18, h: 28, fin: 'opaco', col: 'bianco', morph: 'volumi' },
+    midi:    { w: 28, h: 18, fin: 'opaco', col: 'grigio', morph: 'scomparti' },
+    ball:    { w: 20, h: 20, fin: 'opaco', col: 'bianco', morph: 'liscia' }
+  };
+  function check() {
+    $('#cWo').textContent = st.w + ' cm'; $('#cHo').textContent = st.h + ' cm';
+    const out = [];
+    const mx = Math.max(st.w, st.h), mn = Math.min(st.w, st.h);
+    if (mx > 30) out.push(['no', 'Fuori scala: il lato maggiore è ' + mx + ' cm, il massimo è 30 cm.']);
+    else if (mn < 15) out.push(['no', 'Troppo piccolo: il lato minore è ' + mn + ' cm, il minimo è 15 cm.']);
+    else out.push(['ok', 'Scala desktop rispettata (' + st.w + ' × ' + st.h + ' cm).']);
+    out.push(({ opaco: ['ok', 'Finitura opaca: la luce si diffonde in modo uniforme.'],
+       satinato: ['wn', 'Satinato: possibile hotspot. Provalo sotto il proiettore prima di confermarlo.'],
+       lucido: ['no', 'Lucido: riflette il bulbo del proiettore e rompe l’illusione.'],
+       cromo: ['no', 'Cromo/specchio: rimanda la luce altrove, sull’oggetto non resta immagine.'],
+       vetro: ['no', 'Vetro: la luce lo attraversa invece di fermarsi sulla superficie.'] })[st.fin]);
+    out.push(({ bianco: ['ok', 'Bianco: massima riflettanza, i colori proiettati restano fedeli.'],
+       grigio: ['ok', 'Grigio chiaro: buona riflettanza, contrasto leggermente più morbido.'],
+       pastello: ['ok', 'Pastello desaturato: accettabile, tinge appena la luce.'],
+       saturo: ['no', 'Colore saturo: filtra la luce e altera tutta la palette proiettata.'],
+       nero: ['no', 'Nero: assorbe la luce, il contrasto si annulla.'],
+       trasparente: ['no', 'Trasparente: non c’è superficie su cui fermare la luce.'] })[st.col]);
+    out.push(({ volumi: ['ok', 'Volumi e spigoli chiari: ci sono riferimenti da tracciare.'],
+       scomparti: ['ok', 'Scomparti leggibili: zone pronte per la maschera UV.'],
+       liscia: ['no', 'Superficie liscia senza spigoli: la maschera non ha riferimenti.'] })[st.morph]);
+    const bad = out.some(o => o[0] === 'no'), warn = out.some(o => o[0] === 'wn');
+    const big = $('#vBig');
+    big.className = 'big ' + (bad ? 'no' : warn ? 'wn' : 'ok');
+    big.textContent = bad ? 'Bocciato' : warn ? 'Da testare' : 'Approvato';
+    $('#vSub').textContent = bad ? 'Cerca una variante opaca e chiara dello stesso concept.' : warn ? 'Porta l’oggetto in aula e lo testiamo al buio.' : 'Portalo alla Week 2.';
+    $('#vList').innerHTML = out.map(([k, t]) => '<li><span class="' + k + '">' + (k === 'ok' ? 'OK' : k === 'wn' ? 'TEST' : 'NO') + '</span><span></span></li>').join('');
+    $$('#vList li span:last-child').forEach((s, i) => s.textContent = out[i][1]);
+  }
+  $('#cW').oninput = () => { st.w = +$('#cW').value; clearPreset(); check(); };
+  $('#cH').oninput = () => { st.h = +$('#cH').value; clearPreset(); check(); };
+  $$('.seg[data-k]').forEach(c => seg(c, b => { st[c.dataset.k] = b.dataset.v; clearPreset(); check(); }));
+  function clearPreset() { $$('#presets button').forEach(b => b.setAttribute('aria-pressed', 'false')); }
+  seg($('#presets'), b => {
+    Object.assign(st, PRE[b.dataset.p]);
+    $('#cW').value = st.w; $('#cH').value = st.h;
+    $$('.seg[data-k]').forEach(c => setSeg(c, 'v', st[c.dataset.k]));
+    check();
+  });
+  check();
+
+  /* ---------- 08 · Fitting + checklist ---------- */
+  function fit() {
+    const dx = +$('#fitX').value, sc = +$('#fitS').value;
+    const s = 1 + sc / 100, tf = 'translate(' + dx + ' 0) translate(200 150) scale(' + s + ') translate(-200 -150)';
+    $('#fitIn').setAttribute('transform', tf); $('#fitOut').setAttribute('transform', tf);
+    $('#fitXo').textContent = (dx > 0 ? '+' : '') + dx + ' px'; $('#fitSo').textContent = (sc > 0 ? '+' : '') + sc + '%';
+    const err = Math.abs(dx) + Math.abs(sc) * 1.8;
+    const el = $('#fitState');
+    if (err === 0) { el.textContent = 'Aderente'; el.className = 'live ok'; }
+    else if (err <= 4) { el.textContent = 'Deborda: visibile al buio'; el.className = 'live wn'; }
+    else { el.textContent = 'Inaccettabile in consegna'; el.className = 'live no'; }
+  }
+  $('#fitX').oninput = fit; $('#fitS').oninput = fit; fit();
+  const KEY = 'edi2-l01-checks';
+  let checks = [];
+  try { checks = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) {}
+  $$('.check input').forEach(cb => {
+    cb.checked = !!checks[+cb.dataset.c];
+    cb.onchange = () => { checks[+cb.dataset.c] = cb.checked; try { localStorage.setItem(KEY, JSON.stringify(checks)); } catch (e) {} };
+  });
+
+  /* ---------- loop di animazione ---------- */
+  const t0 = performance.now();
+  (function frame(now) {
+    const t = (now - t0) / 1000;
+    if (slides[3].classList.contains('active')) drawBottle(reduced ? 0 : t);
+    tickTimeline(now);
+    requestAnimationFrame(frame);
+  })(t0);
+  drawBottle(0);
+
+  /* ---------- avvio ---------- */
+  const m = /^#s(\d+)$/.exec(location.hash || '');
+  go(m ? (+m[1] - 1) : 0);
+})();
+</script>
+</body>
+</html>
