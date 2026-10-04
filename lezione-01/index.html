@@ -173,6 +173,19 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
 .hud .count{font-variant-numeric:tabular-nums;color:var(--lumen);font-weight:600}
 .hud .ttl{color:var(--muted);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:620px){.hud .opt{display:none}}
+.only-touch{display:none}
+@media (hover:none) and (pointer:coarse){
+  .only-keys{display:none!important}
+  .only-touch{display:revert}
+  .hud{gap:8px}
+  .hud button{min-width:44px;min-height:44px;font-size:1rem}
+  #prev,#next{min-width:52px;background:var(--lumen);color:var(--room);border-color:var(--lumen);font-weight:600}
+  #depthStage{touch-action:none}
+}
+.swipe-hint{color:var(--muted)}
+.swipe-hint b{color:var(--lumen);font-weight:600}
+.swipe-ico{display:inline-block;color:var(--lumen);margin-right:.4em;animation:nudge 1.8s ease-in-out infinite}
+@keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(6px)}}
 .reg{position:fixed;inset:12px;pointer-events:none;z-index:5}
 .reg i{position:absolute;width:18px;height:18px}
 .reg i::before,.reg i::after{content:"";position:absolute;background:var(--faint)}
@@ -216,7 +229,8 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
         <p class="lede">Product &amp; Spatial Mapping.</p>
         <div class="who"><div>Docente<b>Corrado Santoro</b></div><div>Lezione<b>01 / Introduzione</b></div></div>
         <p class="focus"><b>Focus del corso:</b> abbandonare il frame 16:9. L'inquadratura non è più la composition di After Effects, ma l'oggetto fisico nello spazio reale.</p>
-        <p class="hint">Naviga con <kbd>←</kbd> <kbd>→</kbd> o <kbd>spazio</kbd> · <kbd>G</kbd> indice · <kbd>N</kbd> note · <kbd>F</kbd> schermo intero</p>
+        <p class="hint only-keys">Naviga con <kbd>←</kbd> <kbd>→</kbd> o <kbd>spazio</kbd> · <kbd>G</kbd> indice · <kbd>N</kbd> note · <kbd>F</kbd> schermo intero</p>
+        <p class="hint only-touch swipe-hint"><span class="swipe-ico" aria-hidden="true">⟵ ⟶</span> Scorri col dito per cambiare slide, oppure usa le frecce in basso. <b>Indice</b> per saltare a una slide.</p>
       </div>
     </div>
     <div class="tool">
@@ -402,7 +416,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
       </div>
       <div class="controls">
         <label class="slider"><span class="lbl">Direzione luce</span><input id="angIn" type="range" min="0" max="359" value="235"><output id="angOut">235°</output></label>
-        <div class="row"><button class="btn solid" type="button" id="invBtn" aria-pressed="false">Inverti le ombre</button><span class="hint">Muovi il puntatore sulla scena per spostare la luce</span></div>
+        <div class="row"><button class="btn solid" type="button" id="invBtn" aria-pressed="false">Inverti le ombre</button><span class="hint only-keys">Muovi il puntatore sulla scena per spostare la luce</span><span class="hint only-touch">Trascina il dito sulla scena per spostare la luce</span></div>
       </div>
     </div>
   </div>
