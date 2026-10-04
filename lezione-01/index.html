@@ -77,6 +77,9 @@ ul.points b{color:var(--lumen);font-weight:600}
 .seg button,.btn{background:transparent;border:1px solid var(--line);border-radius:3px;padding:.4em .7em;font-size:.86rem;cursor:pointer;color:#d9d6cd}
 .seg button:hover,.btn:hover{border-color:var(--muted);color:var(--lumen)}
 .seg button[aria-pressed="true"]{background:var(--lumen);color:var(--room);border-color:var(--lumen)}
+.btn.flat{background:transparent;border:1px solid var(--lumen);border-radius:0;color:var(--lumen);font-weight:500}
+.btn.flat:hover{background:var(--lumen);color:var(--room)}
+.btn.icon{width:2.4em;height:2.4em;padding:0;display:inline-grid;place-items:center}
 .btn.solid{background:var(--lumen);color:var(--room);border-color:var(--lumen);font-weight:600}
 .slider{display:grid;grid-template-columns:auto minmax(0,1fr) 4.2em;gap:10px;align-items:center}
 .slider output{font:600 .85rem var(--mono);text-align:right;font-variant-numeric:tabular-nums}
@@ -251,7 +254,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
           <text class="outside" opacity="0" x="200" y="236" text-anchor="middle" fill="#a0a3af" font-family="JetBrains Mono, monospace" font-size="9">l'inquadratura è l'oggetto</text>
         </svg>
       </div>
-      <div class="row"><button class="btn solid" id="frameBtn" type="button">Rimuovi il frame 16:9</button><button class="btn" id="faceBtn" type="button" aria-pressed="false" hidden>▶ Play</button></div>
+      <div class="row"><button class="btn flat" id="frameBtn" type="button">Rimuovi il frame 16:9</button><button class="btn flat icon" id="faceBtn" type="button" aria-label="Play" aria-pressed="false" hidden><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg></button></div>
     </div>
   </div>
 </section>
@@ -681,7 +684,8 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
   }
   function setFaceBtn() {
     const on = fMode === 'loop';
-    faceBtn.textContent = on ? '❚❚ Pausa' : '▶ Play';
+    faceBtn.innerHTML = on ? '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.5 2.5h3v11h-3zM9.5 2.5h3v11h-3z" fill="currentColor"/></svg>' : '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>';
+    faceBtn.setAttribute('aria-label', on ? 'Pausa' : 'Play');
     faceBtn.setAttribute('aria-pressed', String(on));
   }
   function stepFaces(now) {
