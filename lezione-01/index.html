@@ -240,7 +240,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
       </div>
     </div>
     <div class="tool">
-      <div class="tool-head"><span>Comp 1 · 1920 × 1080 · 25 fps</span><span class="live" id="frameState">Vista: flat 16:9</span></div>
+      <div class="tool-head"><span>Comp 1 · 1920 × 1080 · 25 fps</span><span class="live" id="frameState">Vista: monitor 16:9</span></div>
       <div class="stage" style="aspect-ratio:16/10">
         <svg id="frameDemo" viewBox="0 0 400 250" role="img" aria-label="Un riquadro 16:9 attorno a una scatola: rimuovendo il frame resta solo l'oggetto illuminato">
           <rect width="400" height="250" fill="#050507"/>
@@ -257,7 +257,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
           <text class="outside" opacity="0" x="200" y="236" text-anchor="middle" fill="#a0a3af" font-family="JetBrains Mono, monospace" font-size="9">l'inquadratura è l'oggetto</text>
         </svg>
       </div>
-      <div class="row"><div class="toggle" id="viewToggle" role="group" aria-label="Vista"><button class="btn flat" type="button" data-v="flat" aria-pressed="true">Flat</button><button class="btn flat" type="button" data-v="space" aria-pressed="false">Spazio</button></div><button class="btn flat icon" id="faceBtn" type="button" aria-label="Play" aria-pressed="false" hidden><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg></button></div>
+      <div class="row"><div class="toggle" id="viewToggle" role="group" aria-label="Vista"><button class="btn flat" type="button" data-v="flat" aria-pressed="true">Monitor</button><button class="btn flat" type="button" data-v="space" aria-pressed="false">Spazio</button></div><button class="btn flat icon" id="faceBtn" type="button" aria-label="Play" aria-pressed="false" hidden><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg></button></div>
     </div>
   </div>
 </section>
@@ -713,7 +713,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
     const off = b.dataset.v === 'space';
     $('#viewToggle').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
     $('#frameDemo').classList.toggle('noframe', off);
-    $('#frameState').textContent = off ? 'Vista: spazio' : 'Vista: flat 16:9';
+    $('#frameState').textContent = off ? 'Vista: spazio' : 'Vista: monitor 16:9';
     cancelAnimationFrame(fRaf); faceBtn.hidden = true;
     if (off) { fT = 0; fMode = 'once'; paintFaces(); startFaces('once'); }
     else { fMode = 'off'; fT = FULL; paintFaces(); }
