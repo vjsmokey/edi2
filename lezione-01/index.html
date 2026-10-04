@@ -472,7 +472,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
       <h2>I vincoli fisici dell'<em>oggetto</em></h2>
       <p class="lede">Scegliere l'oggetto sbagliato significa compromettere 15 settimane di corso.</p>
       <ul class="points">
-        <li><b>Dimensioni.</b> Scala desktop. Minimo 15×15 cm, massimo 30×30 cm.</li>
+        <li><b>Dimensioni.</b> Minimo 15×15 cm, massimo circa 100 cm sul lato lungo: la taglia di una chitarra o di una TV da 45".</li>
         <li><b>Colore e finitura.</b> Rigorosamente opaco/matte. Bianco, grigio chiaro o pastello desaturato.</li>
         <li><b>Morfologia.</b> Volumi chiari o scomparti leggibili: sneaker, packaging rigido, controller MIDI verniciato, scultura geometrica, busto low-poly.</li>
       </ul>
@@ -492,8 +492,8 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
           <button type="button" data-p="ball">Sfera di polistirolo</button>
         </div>
       </div>
-      <label class="slider"><span class="lbl">Larghezza</span><input id="cW" type="range" min="5" max="120" value="22"><output id="cWo">22 cm</output></label>
-      <label class="slider"><span class="lbl">Altezza</span><input id="cH" type="range" min="5" max="120" value="22"><output id="cHo">22 cm</output></label>
+      <label class="slider"><span class="lbl">Larghezza</span><input id="cW" type="range" min="5" max="150" value="22"><output id="cWo">22 cm</output></label>
+      <label class="slider"><span class="lbl">Altezza</span><input id="cH" type="range" min="5" max="150" value="22"><output id="cHo">22 cm</output></label>
       <div class="row"><span class="lbl">Finitura</span><div class="seg" data-k="fin">
         <button type="button" data-v="opaco" aria-pressed="true">Opaco</button><button type="button" data-v="satinato">Satinato</button><button type="button" data-v="lucido">Lucido</button><button type="button" data-v="cromo">Cromo/specchio</button><button type="button" data-v="vetro">Vetro</button></div></div>
       <div class="row"><span class="lbl">Colore</span><div class="seg" data-k="col">
@@ -556,7 +556,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
         <li><b>Che oggetto state pensando di portare?</b> Diciamolo ad alta voce e passiamolo al checker.</li>
         <li><b>È opaco e chiaro?</b> Se riflette la lampada di un telefono, rifletterà anche il proiettore.</li>
         <li><b>Ha spigoli da tracciare?</b> Senza spigoli la maschera non ha riferimenti.</li>
-        <li><b>Entra in 30×30 cm?</b> Scala desktop, niente di più.</li>
+        <li><b>Sta sotto i 100 cm?</b> Al massimo la taglia di una chitarra o di una TV da 45".</li>
       </ul>
       <div class="row"><button class="btn solid" type="button" id="toChecker">Apri il checker oggetto</button><button class="btn" type="button" id="toStart">Torna all'inizio</button></div>
     </div>
@@ -933,9 +933,9 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
     $('#cWo').textContent = st.w + ' cm'; $('#cHo').textContent = st.h + ' cm';
     const out = [];
     const mx = Math.max(st.w, st.h), mn = Math.min(st.w, st.h);
-    if (mx > 30) out.push(['no', 'Fuori scala: il lato maggiore è ' + mx + ' cm, il massimo è 30 cm.']);
+    if (mx > 100) out.push(['no', 'Fuori scala: il lato maggiore è ' + mx + ' cm, il massimo è 100 cm.']);
     else if (mn < 15) out.push(['no', 'Troppo piccolo: il lato minore è ' + mn + ' cm, il minimo è 15 cm.']);
-    else out.push(['ok', 'Scala desktop rispettata (' + st.w + ' × ' + st.h + ' cm).']);
+    else out.push(['ok', 'Dimensioni nei limiti (' + st.w + ' × ' + st.h + ' cm).']);
     out.push(({ opaco: ['ok', 'Finitura opaca: la luce si diffonde in modo uniforme.'],
        satinato: ['wn', 'Satinato: possibile hotspot. Provalo sotto il proiettore prima di confermarlo.'],
        lucido: ['no', 'Lucido: riflette il bulbo del proiettore e rompe l’illusione.'],
