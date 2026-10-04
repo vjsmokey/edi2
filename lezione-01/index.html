@@ -74,16 +74,12 @@ ul.points b{color:var(--lumen);font-weight:600}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .lbl{font:600 .7rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);min-width:9.5em}
 .seg{display:flex;flex-wrap:wrap;gap:6px}
-.seg button,.btn{background:transparent;border:1px solid var(--line);border-radius:3px;padding:.4em .7em;font-size:.86rem;cursor:pointer;color:#d9d6cd}
-.seg button:hover,.btn:hover{border-color:var(--muted);color:var(--lumen)}
-.seg button[aria-pressed="true"]{background:var(--lumen);color:var(--room);border-color:var(--lumen)}
-.btn.flat{background:transparent;border:1px solid var(--lumen);border-radius:0;color:var(--lumen);font-weight:500}
-.btn.flat:hover{background:var(--lumen);color:var(--room)}
+/* pulsanti flat: bordo sottile, angoli vivi, pieno solo quando attivo o in hover */
+.seg button,.btn{background:transparent;border:1px solid var(--lumen);border-radius:0;padding:.4em .7em;font-size:.86rem;font-weight:500;cursor:pointer;color:var(--lumen);display:inline-flex;align-items:center;gap:.5em}
+.seg button:hover,.btn:hover,.seg button[aria-pressed="true"],.btn[aria-pressed="true"]{background:var(--lumen);color:var(--room)}
 .toggle{display:inline-flex}
 .toggle .btn + .btn{border-left:0}
-.btn.flat[aria-pressed="true"]{background:var(--lumen);color:var(--room)}
-.btn.icon{width:2.4em;height:2.4em;padding:0;display:inline-grid;place-items:center}
-.btn.solid{background:var(--lumen);color:var(--room);border-color:var(--lumen);font-weight:600}
+.btn.icon{width:2.4em;height:2.4em;padding:0;justify-content:center}
 .slider{display:grid;grid-template-columns:auto minmax(0,1fr) 4.2em;gap:10px;align-items:center}
 .slider output{font:600 .85rem var(--mono);text-align:right;font-variant-numeric:tabular-nums}
 input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
@@ -128,10 +124,11 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
 /* ---------- Slide 6 ---------- */
 .pipe{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;counter-reset:p}
 @media (max-width:560px){.pipe{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.pipe button{counter-increment:p;text-align:left;background:transparent;border:1px solid var(--line);border-radius:3px;padding:.6em .7em;cursor:pointer;display:grid;gap:.15em}
+.pipe button{counter-increment:p;text-align:left;background:transparent;border:1px solid var(--line);border-radius:0;padding:.6em .7em;cursor:pointer;display:grid;gap:.15em}
 .pipe button::before{content:"0" counter(p);font:600 .68rem var(--mono);color:var(--muted)}
 .pipe button b{font:700 .95rem var(--display);font-variation-settings:"wdth" 110}
 .pipe button span{font-size:.78rem;color:var(--muted)}
+.pipe button:hover{border-color:var(--lumen)}
 .pipe button[aria-pressed="true"]{border-color:var(--lumen);background:rgba(243,239,228,.06)}
 .pipe-detail{font-size:.95rem;color:#d9d6cd;min-height:3em;margin:0}
 .timeline{position:relative;height:64px;background:#08090c;border:1px solid var(--line);border-radius:3px;overflow:hidden}
@@ -143,7 +140,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
 .flash{width:16px;height:16px;border-radius:50%;background:var(--line);transition:background .12s ease,box-shadow .12s ease;flex:none}
 .flash.on{background:var(--lumen);box-shadow:0 0 18px var(--lumen)}
 .flash.bar.on{background:var(--r);box-shadow:0 0 18px var(--r)}
-.num{width:5em;background:#08090c;border:1px solid var(--line);border-radius:3px;padding:.35em .5em;font-family:var(--mono)}
+.num{width:5em;background:#08090c;border:1px solid var(--line);border-radius:0;padding:.35em .5em;font-family:var(--mono)}
 
 /* ---------- Slide 7 ---------- */
 .verdict{display:flex;align-items:center;gap:14px;border:1px solid var(--line);border-radius:4px;padding:12px 14px}
@@ -353,7 +350,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
       <div class="controls">
         <label class="slider"><span class="lbl">Inizio</span><input id="trimStart" type="range" min="0" max="100" value="0"><output id="trimStartOut">0%</output></label>
         <label class="slider"><span class="lbl">Fine</span><input id="trimEnd" type="range" min="0" max="100" value="100"><output id="trimEndOut">100%</output></label>
-        <div class="row"><button class="btn solid" type="button" id="trimPlay">▶ Riproduci lo svelamento</button><span class="hint">Bianco: spigoli · Blu: cuciture e zona logo</span></div>
+        <div class="row"><button class="btn" type="button" id="trimPlay"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>Riproduci lo svelamento</button><span class="hint">Bianco: spigoli · Blu: cuciture e zona logo</span></div>
       </div>
     </div>
   </div>
@@ -422,7 +419,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
       </div>
       <div class="controls">
         <label class="slider"><span class="lbl">Direzione luce</span><input id="angIn" type="range" min="0" max="359" value="235"><output id="angOut">235°</output></label>
-        <div class="row"><button class="btn solid" type="button" id="invBtn" aria-pressed="false">Inverti le ombre</button><span class="hint only-keys">Muovi il puntatore sulla scena per spostare la luce</span><span class="hint only-touch">Trascina il dito sulla scena per spostare la luce</span></div>
+        <div class="row"><button class="btn" type="button" id="invBtn" aria-pressed="false">Inverti le ombre</button><span class="hint only-keys">Muovi il puntatore sulla scena per spostare la luce</span><span class="hint only-touch">Trascina il dito sulla scena per spostare la luce</span></div>
       </div>
     </div>
   </div>
@@ -460,7 +457,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
         <div class="tl-scale"><span>0 s</span><span>10 s</span><span>20 s</span><span>30 s</span></div>
       </div>
       <div class="row">
-        <button class="btn solid" type="button" id="tlPlay">▶ Play</button>
+        <button class="btn icon" type="button" id="tlPlay" aria-label="Play"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg></button>
         <button class="btn" type="button" id="clickBtn" aria-pressed="false">Click metronomo: off</button>
         <span class="flash" id="flBeat" title="beat"></span><span class="flash bar" id="flBar" title="battuta"></span>
         <span class="hint" id="tlTime">0.0 s</span>
@@ -565,7 +562,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
         <li><b>Ha spigoli da tracciare?</b> Senza spigoli la maschera non ha riferimenti.</li>
         <li><b>Sta sotto i 100 cm?</b> Al massimo la taglia di una chitarra o di una TV da 45".</li>
       </ul>
-      <div class="row"><button class="btn solid" type="button" id="toChecker">Apri il checker oggetto</button><button class="btn" type="button" id="toStart">Torna all'inizio</button></div>
+      <div class="row"><button class="btn" type="button" id="toChecker">Apri il checker oggetto</button><button class="btn" type="button" id="toStart">Torna all'inizio</button></div>
     </div>
   </div>
 </section>
@@ -946,7 +943,7 @@ input[type=range]{width:100%;accent-color:var(--lumen);min-width:0}
   }
   $('#clickBtn').onclick = () => { clickOn = !clickOn; $('#clickBtn').setAttribute('aria-pressed', String(clickOn)); $('#clickBtn').textContent = 'Click metronomo: ' + (clickOn ? 'on' : 'off'); };
   $('#tlPlay').onclick = () => {
-    playing = !playing; $('#tlPlay').textContent = playing ? '■ Stop' : '▶ Play';
+    playing = !playing; $('#tlPlay').innerHTML = playing ? '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.5 3.5h9v9h-9z" fill="currentColor"/></svg>' : '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>'; $('#tlPlay').setAttribute('aria-label', playing ? 'Stop' : 'Play');
     if (playing) { playT0 = performance.now(); lastBeat = -1; if (actx && actx.state === 'suspended') actx.resume(); }
     else { head.style.left = '0'; $('#tlTime').textContent = '0.0 s'; }
   };
