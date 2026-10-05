@@ -294,7 +294,6 @@ input[type=range]{width:100%;accent-color:var(--orange);min-width:0}
           <div class="seg" id="matSeg">
             <button type="button" data-m="white" aria-pressed="true">Bianco opaco</button>
             <button type="button" data-m="grey">Grigio chiaro</button>
-            <button type="button" data-m="pastel">Pastello</button>
             <button type="button" data-m="black">Nero</button>
             <button type="button" data-m="gloss">Plastica lucida</button>
             <button type="button" data-m="chrome">Cromo</button>
@@ -470,8 +469,8 @@ input[type=range]{width:100%;accent-color:var(--orange);min-width:0}
       <p class="lede">Scegliere l'oggetto sbagliato significa compromettere 15 settimane di corso.</p>
       <ul class="points">
         <li><b>Dimensioni.</b> Minimo la taglia di una sneaker (circa 30 × 12 cm), massimo circa 100 cm sul lato lungo: la taglia di una chitarra o di una TV da 45".</li>
-        <li><b>Colore e finitura.</b> Rigorosamente opaco/matte. Bianco, grigio chiaro o pastello desaturato.</li>
-        <li><b>Morfologia.</b> Volumi chiari o scomparti leggibili: sneaker, packaging rigido, controller MIDI verniciato, scultura geometrica, busto low-poly.</li>
+        <li><b>Colore e finitura.</b> Rigorosamente opaco/matte. Bianco o grigio chiaro.</li>
+        <li><b>Forma.</b> Volumi chiari o scomparti leggibili: sneaker, packaging rigido, scultura geometrica, busto low-poly.</li>
       </ul>
       <div class="refs"><span class="k">I no assoluti</span>
         <div class="noes"><span>Vetro</span><span>Cromo</span><span>Specchi</span><span>Nero assoluto</span><span>Plastica lucida</span><span>Sfere lisce senza spigoli</span></div>
@@ -486,7 +485,6 @@ input[type=range]{width:100%;accent-color:var(--orange);min-width:0}
           <button type="button" data-p="sneaker">Sneaker bianca opaca</button>
           <button type="button" data-p="pack">Packaging rigido bianco</button>
           <button type="button" data-p="bust">Busto low-poly in gesso</button>
-          <button type="button" data-p="midi">Controller MIDI verniciato</button>
           <button type="button" data-p="ball">Sfera di polistirolo</button>
         </div>
       </div>
@@ -714,7 +712,6 @@ input[type=range]{width:100%;accent-color:var(--orange);min-width:0}
   const MATS = {
     white:  { n: 'Bianco opaco', alb: '#ecebe6', gl: 0,   refl: 85, v: ['ok', 'Mappabile'] },
     grey:   { n: 'Grigio chiaro opaco', alb: '#b8bab9', gl: 0, refl: 55, v: ['ok', 'Mappabile'] },
-    pastel: { n: 'Pastello desaturato', alb: '#d9d2e2', gl: 0, refl: 70, v: ['ok', 'Mappabile'] },
     black:  { n: 'Nero opaco', alb: '#161616', gl: 0,   refl: 4,  v: ['no', 'Assorbe la luce: contrasto annullato'] },
     gloss:  { n: 'Plastica lucida', alb: '#cfcfcf', gl: .95, refl: 60, v: ['no', 'Hotspot del bulbo visibile'] },
     chrome: { n: 'Cromo / specchio', alb: '#2c2f34', gl: 1, refl: 8, v: ['no', 'Riflette il proiettore, nessuna immagine'] }
@@ -962,7 +959,6 @@ input[type=range]{width:100%;accent-color:var(--orange);min-width:0}
     sneaker: { w: 30, h: 12, fin: 'opaco', col: 'bianco', morph: 'volumi' },
     pack:    { w: 35, h: 30, fin: 'opaco', col: 'bianco', morph: 'volumi' },
     bust:    { w: 30, h: 45, fin: 'opaco', col: 'bianco', morph: 'volumi' },
-    midi:    { w: 48, h: 28, fin: 'opaco', col: 'grigio', morph: 'scomparti' },
     ball:    { w: 30, h: 30, fin: 'opaco', col: 'bianco', morph: 'liscia' }
   };
   function check() {
@@ -979,7 +975,6 @@ input[type=range]{width:100%;accent-color:var(--orange);min-width:0}
        vetro: ['no', 'Vetro: la luce lo attraversa invece di fermarsi sulla superficie.'] })[st.fin]);
     out.push(({ bianco: ['ok', 'Bianco: massima riflettanza, i colori proiettati restano fedeli.'],
        grigio: ['ok', 'Grigio chiaro: buona riflettanza, contrasto leggermente più morbido.'],
-       pastello: ['ok', 'Pastello desaturato: accettabile, tinge appena la luce.'],
        saturo: ['no', 'Colore saturo: filtra la luce e altera tutta la palette proiettata.'],
        nero: ['no', 'Nero: assorbe la luce, il contrasto si annulla.'],
        trasparente: ['no', 'Trasparente: non c’è superficie su cui fermare la luce.'] })[st.col]);
