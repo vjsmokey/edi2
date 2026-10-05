@@ -176,6 +176,14 @@ input[type=range]{width:100%;accent-color:var(--orange);min-width:0}
 .hud .count{font:600 .85rem var(--mono);font-variant-numeric:tabular-nums}
 .hud .ttl{color:var(--g8);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:620px){.hud .opt{display:none}}
+/* modalità dispensa: tutte le slide una sotto l'altra, pagina che scorre */
+body.handout{overflow-y:auto}
+body.handout #deck{height:auto}
+body.handout .slide{position:relative;inset:auto;opacity:1;visibility:visible;transform:none;overflow:visible;transition:none;
+  padding-block:clamp(48px,9vh,96px);border-bottom:1px solid var(--g2)}
+body.handout .slide:last-child{padding-bottom:140px}
+body.handout .inner{min-height:0}
+body.handout #prev,body.handout #next,body.handout #notesBtn,body.handout #fsBtn{display:none}
 .only-touch{display:none}
 @media (hover:none) and (pointer:coarse){
   .only-keys{display:none!important}
@@ -226,8 +234,8 @@ input[type=range]{width:100%;accent-color:var(--orange);min-width:0}
         <p class="lede">Product &amp; Spatial Mapping.</p>
         <div class="who"><div>Docente<b>Corrado Santoro</b></div><div>Lezione<b>01 / Introduzione</b></div></div>
         <p class="focus"><b>Focus del corso:</b> abbandonare il frame 16:9. L'inquadratura non è più la composition di After Effects, ma l'oggetto fisico nello spazio reale.</p>
-        <p class="hint only-keys">Naviga con <kbd>←</kbd> <kbd>→</kbd> o <kbd>spazio</kbd> · <kbd>G</kbd> indice · <kbd>N</kbd> note · <kbd>F</kbd> schermo intero</p>
-        <p class="hint only-touch swipe-hint"><span class="swipe-ico" aria-hidden="true">⟵ ⟶</span> Scorri col dito per cambiare slide, oppure usa le frecce in basso. <b>Indice</b> per saltare a una slide.</p>
+        <p class="hint only-keys">Naviga con <kbd>←</kbd> <kbd>→</kbd> o <kbd>spazio</kbd> · <kbd>G</kbd> indice · <kbd>N</kbd> note · <kbd>F</kbd> schermo intero · <kbd>D</kbd> dispensa</p>
+        <p class="hint only-touch swipe-hint"><span class="swipe-ico" aria-hidden="true">⟵ ⟶</span> Scorri col dito per cambiare slide, oppure usa le frecce in basso. <b>Indice</b> per saltare a una slide, <b>Dispensa</b> per leggerle tutte di seguito.</p>
       </div>
     </div>
     <div class="tool">
@@ -567,6 +575,7 @@ input[type=range]{width:100%;accent-color:var(--orange);min-width:0}
   <button type="button" id="next" aria-label="Slide successiva">→</button>
   <span class="ttl" id="ttl"></span>
   <button type="button" id="ovBtn">Indice</button>
+  <button type="button" id="handoutBtn" aria-pressed="false">Dispensa</button>
   <button type="button" class="opt" id="notesBtn" aria-pressed="false">Note</button>
   <button type="button" class="opt" id="fsBtn">Schermo intero</button>
 </nav>
@@ -589,8 +598,10 @@ input[type=range]{width:100%;accent-color:var(--orange);min-width:0}
   const enterHooks = {};
 
   /* ---------- Navigazione ---------- */
+  let handout = false;
   function go(n) {
     n = Math.max(0, Math.min(N - 1, n));
+    if (handout) { slides[n].scrollIntoView({ behavior: reducedNav ? 'auto' : 'smooth' }); mark(n); return; }
     slides.forEach((s, k) => {
       s.classList.toggle('active', k === n);
       s.classList.toggle('past', k < n);
@@ -606,12 +617,45 @@ input[type=range]{width:100%;accent-color:var(--orange);min-width:0}
     const h = slides[n].dataset.enter; if (h && enterHooks[h]) enterHooks[h]();
     $$('#ovGrid button').forEach((b, k) => b.classList.toggle('cur', k === n));
   }
+  const reducedNav = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* aggiorna contatore e titolo senza cambiare slide (usato in dispensa) */
+  function mark(n) {
+    cur = n;
+    $('#count').textContent = pad(n + 1) + ' / ' + pad(N);
+    $('#ttl').textContent = slides[n].dataset.title;
+    $('#prog').style.width = ((n + 1) / N * 100) + '%';
+    $$('#ovGrid button').forEach((b, k) => b.classList.toggle('cur', k === n));
+  }
+  const seen = new IntersectionObserver(entries => {
+    if (!handout) return;
+    entries.forEach(en => { if (en.isIntersecting) mark(slides.indexOf(en.target)); });
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  slides.forEach(s => seen.observe(s));
+  function setHandout(on) {
+    const at = cur;
+    handout = on;
+    document.body.classList.toggle('handout', on);
+    $('#handoutBtn').setAttribute('aria-pressed', String(on));
+    $('#handoutBtn').textContent = on ? 'Torna alle slide' : 'Dispensa';
+    $('#notes').hidden = true; $('#notesBtn').setAttribute('aria-pressed', 'false');
+    if (on) {
+      slides.forEach(s => { s.inert = false; s.removeAttribute('aria-hidden'); s.classList.remove('past'); s.classList.add('active'); });
+      try { history.replaceState(null, '', '#dispensa'); } catch (e) {}
+      slides[at].scrollIntoView();
+    } else {
+      window.scrollTo(0, 0);
+      go(at);
+    }
+  }
+  $('#handoutBtn').onclick = () => setHandout(!handout);
   const isField = el => el && (el.matches('input,select,textarea') || el.isContentEditable);
   document.addEventListener('keydown', e => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const t = e.target;
     if (e.key === 'Escape') { $('#overview').hidden = true; $('#notes').hidden = true; $('#notesBtn').setAttribute('aria-pressed', 'false'); return; }
     if (isField(t)) return;
+    if (e.key === 'd' || e.key === 'D') { setHandout(!handout); return; }
+    if (handout) { if (e.key === 'g' || e.key === 'G' || e.key === 'o') toggleOverview(); return; }
     if (['ArrowRight', 'PageDown'].includes(e.key) || (e.key === ' ' && !t.matches('button'))) { e.preventDefault(); go(cur + 1); }
     else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); go(cur - 1); }
     else if (e.key === 'Home') go(0);
@@ -623,7 +667,7 @@ input[type=range]{width:100%;accent-color:var(--orange);min-width:0}
   let tx = 0, ty = 0, tTarget = null;
   document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; tTarget = e.target; }, { passive: true });
   document.addEventListener('touchend', e => {
-    if (tTarget && tTarget.closest('input,.stage,.timeline')) return;
+    if (handout || (tTarget && tTarget.closest('input,.stage,.timeline'))) return;
     const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) go(cur + (dx < 0 ? 1 : -1));
   }, { passive: true });
@@ -1026,7 +1070,7 @@ input[type=range]{width:100%;accent-color:var(--orange);min-width:0}
   const t0 = performance.now();
   (function frame(now) {
     const t = (now - t0) / 1000;
-    if (slides[3].classList.contains('active')) drawBottle(reduced ? 0 : t);
+    if (slides[3].classList.contains('active') || handout) drawBottle(reduced ? 0 : t);
     tickTimeline(now);
     requestAnimationFrame(frame);
   })(t0);
@@ -1035,6 +1079,7 @@ input[type=range]{width:100%;accent-color:var(--orange);min-width:0}
   /* ---------- avvio ---------- */
   const m = /^#s(\d+)$/.exec(location.hash || '');
   go(m ? (+m[1] - 1) : 0);
+  if (location.hash === '#dispensa') setHandout(true);
 })();
 </script>
 </body>
