@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EDI 2 Programma</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Bebas+Neue&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: slide a schermo pieno che alternano nero pieno (titolo, case study, Q&A) e bianco (teoria, brief, consegne), come le sezioni di un sito istituzionale; testo a sinistra, demo a destra; barra di navigazione nera fissa in basso. */
+:root{
+  --black:#000; --ink:#1c1c1c; --g2:#2d2d2d; --g6:#666; --g8:#888; --gb:#bfbfbf; --ge:#e0e0e0; --gf:#f0f0f0; --white:#fff;
+  --orange:#ff6900;   /* unico accento forte */
+  --cyan:#22b8f0;     /* accento secondario, solo nelle demo */
+  --display:"Archivo","Arial Black",system-ui,sans-serif;
+  --body:"Bebas Neue","Arial Narrow",Impact,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--black);color:var(--white);font:400 1.3rem/1.2 var(--body);letter-spacing:.02em;overflow:hidden;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit;letter-spacing:inherit}
+:focus-visible{outline:2px solid var(--orange);outline-offset:3px}
+
+/* ---------- Temi per slide ---------- */
+.slide{--bg:var(--white);--fg:var(--black);--muted:var(--g6);--line:var(--ge);--panel:var(--gf);--pill:var(--black);
+  --ok:#138a4c;--no:#d4291c;--wn:#b85f00;color-scheme:light}
+.slide.dark{--bg:var(--black);--fg:var(--white);--muted:var(--g8);--line:var(--g2);--panel:var(--ink);--pill:var(--g6);
+  --ok:#3fd17f;--no:#ff4d3d;--wn:#ffb000;color-scheme:dark}
+a{color:var(--fg);text-decoration-color:var(--orange);text-underline-offset:3px}
+
+/* ---------- Deck ---------- */
+#deck{position:relative;height:100%}
+.slide{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;background:var(--bg);color:var(--fg);padding:clamp(28px,6vh,72px) clamp(16px,5vw,72px) 110px;
+  opacity:0;visibility:hidden;transform:translateX(2%);transition:opacity .45s ease,transform .55s cubic-bezier(.2,.7,.2,1),visibility 0s .55s}
+.slide.past{transform:translateX(-2%)}
+.slide.active{opacity:1;visibility:visible;transform:none;transition:opacity .45s ease,transform .55s cubic-bezier(.2,.7,.2,1),visibility 0s}
+.inner{max-width:1240px;min-height:100%;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:clamp(28px,4vw,64px);align-items:center}
+.inner > *{min-width:0}
+@media (max-width:900px){.inner{grid-template-columns:minmax(0,1fr);align-items:start}}
+
+.eyebrow{font:600 .72rem/1.3 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;gap:.75em;flex-wrap:wrap;align-items:center}
+.eyebrow .cue{color:var(--white);background:var(--orange);padding:.25em .8em;border-radius:999px}
+h1,h2{font-family:var(--display);font-variation-settings:"wdth" 125;font-weight:800;letter-spacing:-.01em;line-height:.98;text-wrap:balance;margin:.35em 0 .45em;text-transform:uppercase}
+h1{font-size:clamp(2.6rem,7vw,6rem)}
+h2{font-size:clamp(1.8rem,3.6vw,3.1rem)}
+h1 em,h2 em{font-style:normal;color:var(--orange)}
+.lede{font:700 clamp(1.05rem,1.5vw,1.3rem)/1.35 var(--display);font-variation-settings:"wdth" 110;color:var(--fg);max-width:46ch;margin:0 0 1.2em}
+p,li{text-wrap:pretty}
+ul.points{list-style:none;padding:0;margin:0;display:grid;gap:.75em;max-width:52ch}
+ul.points li{padding-left:1.3em;position:relative}
+ul.points li::before{content:"";position:absolute;left:0;top:.45em;width:.55em;height:.55em;background:var(--orange)}
+ul.points b{color:var(--orange);font-weight:400}
+.rule{margin-top:1.4em;border-left:6px solid var(--orange);background:var(--panel);padding:.9em 1.1em;max-width:52ch;display:grid;gap:.25em}
+.rule .k{font:600 .7rem var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.rule p{margin:0;font-size:1.6rem;line-height:1.05}
+.refs{margin-top:1.4em;display:grid;gap:.6em;max-width:56ch}
+.refs .k{font:600 .7rem var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.refs .links{display:flex;flex-wrap:wrap;gap:.5em}
+.chip-link{font-size:1.05rem;border:2px solid var(--pill);padding:.35em 1em;border-radius:999px;text-decoration:none;color:var(--fg)}
+.chip-link:hover{border-color:var(--orange);color:var(--orange)}
+.chip-link::after{content:" ↗"}
+.watch{margin-top:1em;color:var(--muted);max-width:52ch}
+.watch b{color:var(--fg);font-weight:400}
+
+/* ---------- Strumenti / demo ---------- */
+.tool{background:var(--panel);padding:clamp(14px,2vw,24px);display:grid;gap:14px}
+.tool-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;font:600 .7rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.tool-head .live{color:var(--fg)}
+.stage{position:relative;background:#000;overflow:hidden;aspect-ratio:4/3;max-width:100%}
+.stage svg,.stage canvas{display:block;width:100%;height:100%}
+.controls{display:grid;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lbl{font:600 .68rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);min-width:9.5em}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+/* pulsanti a pillola: bordo pieno, riempiti quando attivi */
+.seg button,.btn{background:transparent;border:2px solid var(--pill);border-radius:999px;padding:.3em .95em;font-size:1.05rem;cursor:pointer;color:var(--fg);display:inline-flex;align-items:center;gap:.45em;line-height:1.1}
+.seg button:hover,.btn:hover{border-color:var(--fg)}
+.seg button[aria-pressed="true"],.btn[aria-pressed="true"]{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+.btn.cta{background:var(--orange);border-color:var(--orange);color:var(--white)}
+.btn.cta:hover{background:transparent;color:var(--orange)}
+.toggle{display:inline-flex;border:2px solid var(--pill);border-radius:999px;padding:2px}
+.toggle .btn{border:0;padding:.25em 1em}
+.btn.icon{width:2.3em;height:2.3em;padding:0;justify-content:center;border-radius:50%}
+.slider{display:grid;grid-template-columns:auto minmax(0,1fr) 4.4em;gap:10px;align-items:center}
+.slider output{font:600 .82rem var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--orange);min-width:0}
+.readout{font:400 .82rem/1.5 var(--mono);color:var(--muted);border-top:1px solid var(--line);padding-top:12px;display:flex;flex-wrap:wrap;gap:.4em 1.4em}
+.readout b{color:var(--fg);font-weight:600}
+.ok{color:var(--ok)!important}.no{color:var(--no)!important}.wn{color:var(--wn)!important}
+
+/* ---------- Slide 1 ---------- */
+.s-title .inner{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
+@media (max-width:900px){.s-title .inner{grid-template-columns:minmax(0,1fr)}}
+.title-meta{display:grid;gap:1.1em;max-width:52ch}
+.who{display:flex;gap:2.2em;flex-wrap:wrap;font:600 .7rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.who b{display:block;color:var(--fg);font:400 1.5rem/1.1 var(--body);letter-spacing:.02em;text-transform:none;margin-top:.2em}
+.focus{border-left:6px solid var(--orange);padding-left:1em;margin:0}
+.focus b{color:var(--orange);font-weight:400}
+.hint{font:400 .78rem var(--mono);color:var(--muted);letter-spacing:0}
+.hint kbd{border:1px solid var(--line);border-radius:4px;padding:.05em .4em;font-family:var(--mono)}
+#frameDemo .frame,#frameDemo .outside{transition:opacity .8s ease}
+#frameDemo.noframe .frame{opacity:0}
+#frameDemo.noframe .outside{opacity:1}
+#frameDemo .obj{transition:filter .8s ease}
+#frameDemo.noframe .obj{filter:drop-shadow(0 0 14px rgba(255,255,255,.45))}
+
+/* ---------- Slide 2 ---------- */
+#lightStage .room{position:absolute;inset:0;background:#050505}
+#lightStage .surf{position:absolute;left:18%;top:14%;width:64%;height:72%;border-radius:10px 10px 40% 40% / 10px 10px 18% 18%;background:var(--alb,#ecebe6)}
+#lightStage .proj{position:absolute;inset:0;mix-blend-mode:multiply}
+#lightStage .amb{position:absolute;inset:0;background:#fff;mix-blend-mode:screen;opacity:var(--amb,0)}
+#lightStage .glare{position:absolute;left:44%;top:22%;width:22%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#fff 0,rgba(255,255,255,.85) 18%,rgba(255,255,255,0) 70%);mix-blend-mode:screen;opacity:var(--gl,0);filter:blur(1px)}
+#lightStage .tag{position:absolute;left:10px;top:8px;font:600 .66rem var(--mono);letter-spacing:.1em;color:#888;text-transform:uppercase}
+
+/* ---------- Slide 3 ---------- */
+#trimSvg path{fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#trimSvg .seam{stroke-width:1.6;stroke:var(--cyan)}
+#trimSvg .ghost{fill:#141414;stroke:none}
+
+/* ---------- Slide 6 ---------- */
+.pipe{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;counter-reset:p}
+@media (max-width:560px){.pipe{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pipe button{counter-increment:p;text-align:left;background:var(--bg);border:2px solid transparent;padding:.6em .75em;cursor:pointer;display:grid;gap:.1em;color:var(--fg)}
+.pipe button::before{content:"0" counter(p);font:600 .66rem var(--mono);color:var(--orange)}
+.pipe button b{font:800 .9rem var(--display);font-variation-settings:"wdth" 112;text-transform:uppercase}
+.pipe button span{font-size:1rem;color:var(--muted)}
+.pipe button:hover{border-color:var(--line)}
+.pipe button[aria-pressed="true"]{border-color:var(--fg)}
+.pipe-detail{min-height:3em;margin:0}
+.timeline{position:relative;height:64px;background:#000;overflow:hidden}
+.timeline .tick{position:absolute;bottom:0;width:1px;height:30%;background:#666}
+.timeline .tick.bar{height:70%;background:#fff}
+.timeline .rest{position:absolute;top:0;bottom:0;right:0;background:repeating-linear-gradient(45deg,rgba(255,105,0,.3) 0 6px,transparent 6px 12px);border-left:2px solid var(--orange)}
+.timeline .head{position:absolute;top:0;bottom:0;width:2px;background:var(--orange);left:0}
+.tl-scale{display:flex;justify-content:space-between;font:400 .68rem var(--mono);color:var(--muted);margin-top:4px}
+.flash{width:16px;height:16px;border-radius:50%;background:var(--line);transition:background .12s ease;flex:none}
+.flash.on{background:var(--fg)}
+.flash.bar.on{background:var(--orange)}
+.num{width:5em;background:transparent;border:2px solid var(--pill);border-radius:999px;padding:.25em .7em;font-family:var(--mono);font-size:.9rem}
+
+/* ---------- Slide 7 ---------- */
+.verdict{display:flex;align-items:center;gap:14px;background:var(--bg);padding:12px 16px;flex-wrap:wrap}
+.verdict .big{font:800 1.5rem var(--display);font-variation-settings:"wdth" 125;text-transform:uppercase}
+.issues{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:1.1rem}
+.issues li{display:grid;grid-template-columns:3.4em minmax(0,1fr);gap:8px}
+.issues li span:first-child{font:600 .7rem/1.9 var(--mono);letter-spacing:.08em}
+.noes{display:flex;flex-wrap:wrap;gap:6px;margin-top:.6em}
+.noes span{font-size:1.05rem;border:2px solid var(--no);color:var(--no);padding:.2em .9em;border-radius:999px;text-decoration:line-through}
+
+/* ---------- Slide 8 ---------- */
+.crit{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 22px;margin-top:1.2em;max-width:64ch}
+@media (max-width:560px){.crit{grid-template-columns:minmax(0,1fr)}}
+.crit div{border-top:3px solid var(--fg);padding-top:.6em}
+.crit h3{margin:0 0 .3em;font:800 .95rem var(--display);font-variation-settings:"wdth" 112;text-transform:uppercase}
+.crit p{margin:0;color:var(--muted)}
+.check{display:flex;gap:.5em;align-items:center;font:400 .75rem var(--mono);color:var(--muted);margin-top:.5em;cursor:pointer;letter-spacing:0}
+.check input{accent-color:var(--orange)}
+
+/* ---------- Slide 9 ---------- */
+.qa h1{font-size:clamp(2.4rem,6vw,5rem)}
+.qa-list{display:grid;gap:.8em;max-width:56ch;padding:0;list-style:none;margin:1em 0 1.5em}
+.qa-list li{border-bottom:1px solid var(--line);padding-bottom:.8em;color:var(--muted)}
+.qa-list b{color:var(--fg);font-weight:400}
+
+/* ---------- Navigazione ---------- */
+.progress{position:fixed;left:0;right:0;top:0;height:3px;z-index:20}
+.progress span{display:block;height:100%;background:var(--orange);width:0;transition:width .5s ease}
+.hud{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;gap:10px;padding:10px clamp(16px,3vw,28px) calc(10px + env(safe-area-inset-bottom,0px));
+  background:var(--black);border-top:1px solid var(--g2);color:var(--white);font-size:1.1rem}
+.hud button{background:transparent;border:2px solid var(--g6);border-radius:999px;padding:.2em .95em;cursor:pointer;color:var(--white)}
+.hud button:hover{border-color:var(--white)}
+.hud button[aria-pressed="true"]{background:var(--white);color:var(--black);border-color:var(--white)}
+.hud #prev,.hud #next{width:2.2em;height:2.2em;padding:0;border-radius:50%}
+.hud .count{font:600 .85rem var(--mono);font-variant-numeric:tabular-nums}
+.hud .ttl{color:var(--g8);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:620px){.hud .opt{display:none}}
+/* modalità dispensa: tutte le slide una sotto l'altra, pagina che scorre */
+body.handout{overflow-y:auto}
+body.handout #deck{height:auto}
+body.handout .slide{position:relative;inset:auto;opacity:1;visibility:visible;transform:none;overflow:visible;transition:none;
+  padding-block:clamp(48px,9vh,96px);border-bottom:1px solid var(--g2)}
+body.handout .slide:last-child{padding-bottom:140px}
+body.handout .inner{min-height:0}
+body.handout #prev,body.handout #next,body.handout #notesBtn,body.handout #fsBtn{display:none}
+.only-touch{display:none}
+@media (hover:none) and (pointer:coarse){
+  .only-keys{display:none!important}
+  .only-touch{display:revert}
+  .hud{gap:8px}
+  .hud button{min-height:44px}
+  .hud #prev,.hud #next{width:48px;height:48px;background:var(--orange);border-color:var(--orange)}
+  #depthStage{touch-action:none}
+}
+.swipe-hint{color:var(--muted)}
+.swipe-hint b{color:var(--fg);font-weight:600}
+.swipe-ico{display:inline-block;color:var(--orange);margin-right:.4em;animation:nudge 1.8s ease-in-out infinite}
+@keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(6px)}}
+
+.overlay{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.96);color:var(--white);padding:clamp(24px,5vw,60px) clamp(16px,5vw,60px);overflow-y:auto}
+.overlay h2{font-size:1.6rem;margin:0 0 1em}
+.ov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;max-width:1100px}
+.ov-grid button{text-align:left;background:var(--ink);border:2px solid transparent;padding:14px;cursor:pointer;display:grid;gap:.4em;min-height:110px;align-content:start;color:var(--white)}
+.ov-grid button:hover{border-color:var(--g6)}
+.ov-grid button.cur{border-color:var(--orange)}
+.ov-grid small{font:600 .68rem var(--mono);color:var(--orange);letter-spacing:.1em}
+.ov-grid b{font:800 .95rem/1.2 var(--display);font-variation-settings:"wdth" 112;text-transform:uppercase}
+.overlay .close{position:absolute;right:clamp(16px,3vw,32px);top:clamp(16px,3vw,28px);border:2px solid var(--g6);border-radius:999px;background:transparent;color:var(--white);padding:.25em 1em;cursor:pointer}
+#notes{position:fixed;z-index:25;right:clamp(16px,3vw,28px);bottom:76px;width:min(420px,calc(100% - 32px));background:var(--ink);color:var(--white);border-left:6px solid var(--orange);padding:16px 18px;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+#notes .k{font:600 .68rem var(--mono);letter-spacing:.14em;color:var(--orange);text-transform:uppercase;margin-bottom:.5em}
+#notes p{margin:0}
+
+@media (prefers-reduced-motion:reduce){
+  .slide,.slide.active{transition:opacity .2s ease,visibility 0s;transform:none!important}
+  *{animation:none!important}
+}
+
+/* ---------- Programma ---------- */
+.s-title h1{font-size:clamp(2.3rem,4.6vw,4.1rem)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;max-width:520px;margin:.4em 0 1.2em}
+.stat{border-top:3px solid var(--fg);padding-top:.5em}
+.stat b{display:block;font:800 clamp(2rem,4vw,3rem)/1 var(--display);font-variation-settings:"wdth" 125;font-variant-numeric:tabular-nums}
+.stat span{font:600 .66rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.next-when{font:800 clamp(2.6rem,6vw,4.6rem)/1 var(--display);font-variation-settings:"wdth" 125;color:var(--orange);font-variant-numeric:tabular-nums}
+.next-what{font-size:1.6rem;line-height:1.05}
+.dlist{list-style:none;margin:0;padding:0;display:grid}
+.dlist li{display:grid;grid-template-columns:6.6em minmax(0,1fr) auto;gap:12px;align-items:baseline;padding:.55em 0;border-top:1px solid var(--line)}
+.dlist time{font:600 .74rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.dlist .code{font:600 .7rem var(--mono);color:var(--orange)}
+.dlist li.past{opacity:.45}
+.dlist li.is-next time,.dlist li.is-next span{color:var(--fg)}
+.tag{font:600 .64rem var(--mono);letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--pill);border-radius:999px;padding:.2em .7em;white-space:nowrap}
+.tag.sum{border-color:var(--orange);color:var(--orange)}
+
+.kgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
+@media (max-width:620px){.kgrid{grid-template-columns:minmax(0,1fr)}}
+.kgrid h3{margin:0 0 .4em;font:800 .9rem var(--display);font-variation-settings:"wdth" 112;text-transform:uppercase}
+.kitem{display:grid;grid-template-columns:2.6em minmax(0,1fr);gap:10px;padding:.6em 0;border-top:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;color:var(--fg);width:100%}
+.kitem code{font:600 .8rem/1.6 var(--mono);color:var(--orange)}
+.kitem[aria-pressed="true"]{background:var(--panel)}
+.kuse{margin:0;color:var(--muted);min-height:2.6em}
+.kuse b{color:var(--fg);font-weight:400}
+
+.weeks{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+@media (max-width:480px){.weeks{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.wk{background:var(--bg);border:2px solid transparent;color:var(--fg);cursor:pointer;padding:.55em .5em;text-align:left;display:grid;gap:.15em;min-width:0}
+.wk small{font:600 .66rem var(--mono);color:var(--orange)}
+.wk span{font-size:.95rem;line-height:1.05;overflow-wrap:anywhere}
+.wk:hover{border-color:var(--line)}
+.wk[aria-pressed="true"]{border-color:var(--fg)}
+.wk.live{background:var(--orange);color:var(--white)}
+.wk.live small{color:var(--white)}
+.wdetail{background:var(--bg);padding:14px 16px;display:grid;gap:.4em;min-height:7.5em}
+.wdetail h3{margin:0;font:800 1rem var(--display);font-variation-settings:"wdth" 112;text-transform:uppercase}
+.wdetail p{margin:0}
+.wdetail .sub{color:var(--muted)}
+
+.tline{position:relative;height:96px;margin:6px 14px 0}
+.tline .axis{position:absolute;left:0;right:0;top:46px;height:2px;background:var(--g6)}
+.tline .mo{position:absolute;top:62px;transform:translateX(-50%);font:400 .62rem var(--mono);color:var(--muted);text-transform:uppercase}
+.tline .mk{position:absolute;top:33px;transform:translateX(-50%);width:28px;height:28px;border-radius:50%;border:2px solid var(--fg);background:var(--bg);cursor:pointer;padding:0}
+.tline .mk.sum{border-color:var(--orange)}
+.tline .mk[aria-pressed="true"]{background:var(--orange);border-color:var(--orange)}
+.tline .today{position:absolute;top:6px;height:66px;width:2px;background:var(--cyan)}
+.tline .today span{position:absolute;top:-2px;left:6px;font:600 .62rem var(--mono);color:var(--cyan);text-transform:uppercase;white-space:nowrap}
+.mkdetail{display:grid;gap:.3em;background:var(--bg);padding:14px 16px}
+.mkdetail .d{font:600 .74rem var(--mono);color:var(--orange);text-transform:uppercase;letter-spacing:.06em}
+.mkdetail p{margin:0}
+
+.spec{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.45em 1.2em;margin:0;align-items:baseline}
+.spec dt{font:600 .66rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.spec dd{margin:0}
+.req{list-style:none;margin:0;padding:0;display:grid;gap:.6em;max-width:56ch}
+.req li{padding-left:1.3em;position:relative}
+.req li::before{content:"";position:absolute;left:0;top:.45em;width:.55em;height:.55em;background:var(--orange)}
+.field{display:grid;gap:6px}
+.field input{background:transparent;border:2px solid var(--pill);border-radius:999px;padding:.35em 1em;font:400 .9rem var(--mono);color:var(--fg);width:100%;max-width:16em}
+.field input:focus{border-color:var(--orange);outline:none}
+.err{font:400 .78rem var(--mono);color:var(--no);min-height:1.2em;margin:0}
+.fname{font:600 .9rem var(--mono);background:#000;color:#fff;padding:.7em .9em;overflow-wrap:anywhere}
+.fname .ph{color:var(--orange)}
+.checks{display:grid;gap:2px}
+.checks label{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;padding:.45em .6em;background:var(--bg);cursor:pointer}
+.checks input{accent-color:var(--orange);margin-top:.3em}
+.checks small{display:block;font:400 .72rem var(--mono);color:var(--muted);letter-spacing:0}
+.prog{font:600 .74rem var(--mono);color:var(--muted)}
+.prog b{color:var(--orange)}
+.verdict-sm{font:800 1.3rem var(--display);font-variation-settings:"wdth" 125;text-transform:uppercase}
+.appelli{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.appelli li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:.5em .7em;background:var(--bg)}
+.appelli li[aria-current="true"]{outline:2px solid var(--orange)}
+.appelli time{font:600 .74rem var(--mono);color:var(--muted);text-transform:uppercase}
+.books{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.books li{border-left:6px solid var(--orange);padding:.6em 1em;background:var(--panel)}
+.books b{display:block;font:800 1rem var(--display);font-variation-settings:"wdth" 112;text-transform:uppercase}
+.books span{color:var(--muted)}
+.cta-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:1.4em}
+a.btn{text-decoration:none}
+</style>
+</head>
+<body>
+<div class="progress" aria-hidden="true"><span id="prog"></span></div>
+
+<main id="deck">
+
+<!-- 01 -->
+<section class="slide dark s-title" data-title="Programma del corso">
+  <div class="inner">
+    <div>
+      <div class="eyebrow"><span class="cue">Prog 01</span> AA 2627 · 21V0-ABTEC38 - EDI 2</div>
+      <h1>Programma<br>del <em>corso</em></h1>
+      <div class="title-meta">
+        <p class="lede">Elaborazione Digitale dell'Immagine 2 · Product Mapping.</p>
+        <div class="stats">
+          <div class="stat"><b>4</b><span>CFA</span></div>
+          <div class="stat"><b>52</b><span>Ore di lezione</span></div>
+          <div class="stat"><b>48</b><span>Ore di laboratorio</span></div>
+        </div>
+        <div class="who"><div>Docente<b>Corrado Santoro</b></div><div>Tipologia<b>Laboratoriale</b></div><div>Settore<b>ABTEC38</b></div></div>
+        <p class="focus">Un corso <b>strettamente progettuale</b>: ognuno sviluppa il proprio concept e lo realizza in laboratorio, dal file statico alla proiezione sull'oggetto.</p>
+        <p class="hint only-keys">Naviga con <kbd>←</kbd> <kbd>→</kbd> · <kbd>G</kbd> indice · <kbd>D</kbd> dispensa · <kbd>F</kbd> schermo intero</p>
+        <p class="hint only-touch swipe-hint"><span class="swipe-ico" aria-hidden="true">⟵ ⟶</span> Scorri col dito per cambiare slide. <b>Dispensa</b> per leggere tutto di seguito.</p>
+      </div>
+    </div>
+    <div class="tool">
+      <div class="tool-head"><span>Prossima scadenza</span><span class="live" id="todayLbl"></span></div>
+      <div>
+        <div class="next-when" id="nextWhen">—</div>
+        <div class="next-what" id="nextWhat"></div>
+      </div>
+      <ul class="dlist" id="dlist"></ul>
+      <p class="hint">Le date possono variare all'interno delle finestre previste: giorni e orari su Canvas.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 02 -->
+<section class="slide dark" data-title="Cosa saprai fare">
+  <div class="inner">
+    <div>
+      <div class="eyebrow"><span class="cue">Prog 02</span> Risultati dell'apprendimento</div>
+      <h2>Cosa saprai <em>fare</em></h2>
+      <p class="lede">Tre conoscenze e tre capacità. Le prove d'esame le verificano una per una.</p>
+      <p class="kuse" id="kuse">Seleziona un obiettivo per vedere in quali prove viene valutato.</p>
+    </div>
+    <div class="tool">
+      <div class="tool-head"><span>Obiettivi formativi</span><span class="live">K = conoscenze · S = capacità</span></div>
+      <div class="kgrid" id="kgrid">
+        <div>
+          <h3>Conoscenze</h3>
+          <button type="button" class="kitem" data-k="K1"><code>K1</code><span>Discutere applicazioni pratiche di tecniche e tecnologie legate ai visual media.</span></button>
+          <button type="button" class="kitem" data-k="K2"><code>K2</code><span>Descrivere i principi del Product Mapping e il rapporto tra contenuti animati, geometria e superfici di proiezione.</span></button>
+          <button type="button" class="kitem" data-k="K3"><code>K3</code><span>Spiegare i criteri tecnici per preparare contenuti per la videoproiezione: risoluzione, formati, colore e contrasto.</span></button>
+        </div>
+        <div>
+          <h3>Capacità</h3>
+          <button type="button" class="kitem" data-k="S1"><code>S1</code><span>Correggere e manipolare l'immagine in uno spazio di post produzione.</span></button>
+          <button type="button" class="kitem" data-k="S2"><code>S2</code><span>Sviluppare elementi di comunicazione visiva tramite animazione video.</span></button>
+          <button type="button" class="kitem" data-k="S3"><code>S3</code><span>Usare strumenti avanzati di motion graphics e generazione visiva.</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 -->
+<section class="slide dark" data-title="Le 15 settimane">
+  <div class="inner">
+    <div>
+      <div class="eyebrow"><span class="cue">Prog 03</span> Contenuti dell'insegnamento</div>
+      <h2>Le 15 <em>settimane</em></h2>
+      <p class="lede">Dal file statico alla proiezione live: ogni settimana aggiunge un pezzo al progetto.</p>
+      <ul class="points">
+        <li><b>Week 1–5.</b> Oggetto, fotografia, Photoshop e animazione in After Effects.</li>
+        <li><b>Week 6–10.</b> MadMapper, mapping sull'oggetto, color grading, particellari e sound.</li>
+        <li><b>Week 11–15.</b> Riprese, codec e Resolume Arena, test live e visione finale.</li>
+      </ul>
+    </div>
+    <div class="tool">
+      <div class="tool-head"><span>Calendario lezioni</span><span class="live" id="wkLbl">Week 01</span></div>
+      <div class="weeks" id="weeks"></div>
+      <div class="wdetail" id="wdetail" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 -->
+<section class="slide dark" data-title="Le prove e le scadenze">
+  <div class="inner">
+    <div>
+      <div class="eyebrow"><span class="cue">Prog 04</span> Descrizione delle prove d'esame</div>
+      <h2>Tre prove,<br>un <em>voto</em></h2>
+      <ul class="points">
+        <li><b>EDI2.F1 · Storyboard.</b> Formativa, propedeutica: senza, non accedi alla valutazione finale.</li>
+        <li><b>EDI2.F2 · Revisione del blockout.</b> Formativa, preparatoria: revisione in classe.</li>
+        <li><b>EDI2.S1 · Product Mapping.</b> Sommativa: vale il 100% del voto finale.</li>
+      </ul>
+      <div class="rule"><span class="k">Da ricordare</span><p>L'appello ordinario è obbligatorio: se non consegni, viene registrato 0.</p></div>
+    </div>
+    <div class="tool">
+      <div class="tool-head"><span>Linea del tempo · ott 2026 – lug 2027</span><span class="live">Tocca un punto</span></div>
+      <div class="tline" id="tline"><div class="axis"></div></div>
+      <div class="mkdetail" id="mkdetail" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 05 -->
+<section class="slide dark" data-title="EDI2.F1 · Storyboard">
+  <div class="inner">
+    <div>
+      <div class="eyebrow"><span class="cue">Prog 05</span> EDI2.F1 · consegna entro il 1 novembre 2026</div>
+      <h2>Storyboard per <em>Product Mapping</em></h2>
+      <p class="lede">Previsualizza la sequenza di animazioni sull'oggetto e diventa il riferimento per sviluppare e verificare il mapping.</p>
+      <ul class="req">
+        <li>Impaginato secondo le norme generali SAE.</li>
+        <li>Definisce le fasi dell'animazione, le superfici coinvolte e le trasformazioni visive sull'oggetto.</li>
+        <li>Presenta l'oggetto scelto con i riferimenti fotografici o grafici che ne mostrano la fattibilità.</li>
+        <li>Include il consenso informato didattico compilato.</li>
+      </ul>
+    </div>
+    <div class="tool">
+      <div class="tool-head"><span>Scheda prova</span><span class="live">Propedeutico a EDI2.S1</span></div>
+      <dl class="spec">
+        <dt>Tipologia</dt><dd>Esercitazione pratica</dd>
+        <dt>Modalità</dt><dd>Individuale · consegna digitale</dd>
+        <dt>Valutazione</dt><dd>Formativa</dd>
+        <dt>Formato</dt><dd>Un unico PDF su Canvas</dd>
+        <dt>Obiettivi</dt><dd>S2 · K1 · S1</dd>
+      </dl>
+      <div class="field">
+        <label class="lbl" for="mat1">La tua matricola</label>
+        <input id="mat1" class="mat" type="text" inputmode="numeric" placeholder="17-12345" autocomplete="off">
+        <p class="err" id="mat1err"></p>
+      </div>
+      <div class="lbl">Nome del file da consegnare</div>
+      <div class="fname" id="fn1"></div>
+      <div class="row"><button type="button" class="btn" data-copy="fn1">Copia il nome</button><span class="hint" id="fn1msg"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 -->
+<section class="slide dark" data-title="EDI2.F2 · Revisione del blockout">
+  <div class="inner">
+    <div>
+      <div class="eyebrow"><span class="cue">Prog 06</span> EDI2.F2 · entro il 22 novembre 2026</div>
+      <h2>Revisione del <em>blockout</em></h2>
+      <p class="lede">In laboratorio mostri a che punto è l'animazione e le prime prove di proiezione sull'oggetto.</p>
+      <ul class="req">
+        <li>Porta gli elementi di progetto e una versione proxy del blockout pronta da vedere.</li>
+        <li>Mostra come le animazioni corrispondono alle superfici, usando gli strumenti di mapping del corso.</li>
+        <li>Fai una revisione critica: indica cosa va corretto prima della finalizzazione.</li>
+      </ul>
+    </div>
+    <div class="tool">
+      <div class="tool-head"><span>Scheda prova</span><span class="live">Preparatorio a EDI2.S1</span></div>
+      <dl class="spec">
+        <dt>Tipologia</dt><dd>Esercitazione pratica</dd>
+        <dt>Modalità</dt><dd>Individuale · revisione in classe</dd>
+        <dt>Valutazione</dt><dd>Formativa</dd>
+        <dt>Obiettivi</dt><dd>S1 · S3</dd>
+      </dl>
+      <div class="lbl">Cosa si confronta con lo storyboard</div>
+      <div class="checks" id="f2checks">
+        <label><input type="checkbox"><span>Timing<small>le animazioni partono e finiscono quando previsto</small></span></label>
+        <label><input type="checkbox"><span>Maschere<small>nessuna luce fuori dagli spigoli</small></span></label>
+        <label><input type="checkbox"><span>Allineamento alle superfici<small>ogni contenuto sta sulla sua faccia</small></span></label>
+        <label><input type="checkbox"><span>Leggibilità delle immagini<small>si capisce cosa succede, anche da lontano</small></span></label>
+      </div>
+      <p class="prog" id="f2prog"></p>
+    </div>
+  </div>
+</section>
+
+<!-- 07 -->
+<section class="slide dark" data-title="EDI2.S1 · Product Mapping">
+  <div class="inner">
+    <div>
+      <div class="eyebrow"><span class="cue">Prog 07</span> EDI2.S1 · 100% del voto finale</div>
+      <h2>Il progetto<br><em>Product Mapping</em></h2>
+      <p class="lede">Animazioni proiettate su un oggetto fisico che ne valorizzano forme e superfici, in linea con lo storyboard approvato.</p>
+      <ul class="req">
+        <li>La sequenza è organica e coerente con la proposta iniziale e con l'oggetto.</li>
+        <li>Maschere, contrasto e colore sono verificati in proiezione; timing e transizioni sostengono l'idea visiva.</li>
+        <li>L'eventuale musica rispetta diritti e condizioni di licenza.</li>
+      </ul>
+      <dl class="spec" style="margin-top:1.2em">
+        <dt>Video</dt><dd>H.264/H.265 · 25 fps · 10 Mbps</dd>
+        <dt>Audio</dt><dd>AAC · 48 kHz · 24 bit</dd>
+        <dt>Archivio</dt><dd>Un unico file 7zip su Canvas</dd>
+      </dl>
+    </div>
+    <div class="tool">
+      <div class="tool-head"><span>Checklist di consegna</span><span class="live" id="s1prog"></span></div>
+      <div class="checks" id="s1checks">
+        <label><input type="checkbox"><span>Video delle animazioni finalizzate<small>H.264/H.265, 25 fps, 10 Mbps</small></span></label>
+        <label><input type="checkbox"><span>Aftermovie<small>documentazione video della proiezione sull'oggetto</small></span></label>
+        <label><input type="checkbox"><span>Materiali grafici realizzati</span></label>
+        <label><input type="checkbox"><span>Progetto After Effects<small>con le risorse necessarie</small></span></label>
+        <label><input type="checkbox"><span>Progetto MadMapper<small>con le risorse necessarie</small></span></label>
+      </div>
+      <div class="field">
+        <label class="lbl" for="mat2">La tua matricola</label>
+        <input id="mat2" class="mat" type="text" inputmode="numeric" placeholder="17-12345" autocomplete="off">
+        <p class="err" id="mat2err"></p>
+      </div>
+      <div class="fname" id="fn2"></div>
+      <div class="row"><button type="button" class="btn" data-copy="fn2">Copia il nome</button><span class="hint" id="fn2msg"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 08 -->
+<section class="slide dark" data-title="Valutazione e appelli">
+  <div class="inner">
+    <div>
+      <div class="eyebrow"><span class="cue">Prog 08</span> Criteri di valutazione · EDI2.S1</div>
+      <h2>Come viene <em>valutato</em></h2>
+      <ul class="points">
+        <li><b>Coerenza</b> con lo storyboard e con il concept del progetto.</li>
+        <li><b>Rapporto tra contenuti, forme e superfici</b> dell'oggetto; precisione e leggibilità della proiezione.</li>
+        <li><b>Timing</b> ed efficacia di animazioni e transizioni.</li>
+        <li><b>Coerenza estetica</b> del Product Mapping e chiarezza della documentazione video.</li>
+      </ul>
+    </div>
+    <div class="tool">
+      <div class="tool-head"><span>Sei ammesso alla valutazione?</span><span class="live">Simulatore</span></div>
+      <label class="slider"><span class="lbl">Presenze</span><input id="pres" type="range" min="0" max="100" step="5" value="85"><output id="presOut">85%</output></label>
+      <div class="row"><span class="lbl">EDI2.F1 superato</span>
+        <div class="seg" id="f1seg"><button type="button" data-v="si" aria-pressed="true">Sì</button><button type="button" data-v="no">No</button></div>
+      </div>
+      <div class="verdict"><span class="verdict-sm" id="admV"></span><span class="hint" id="admS"></span></div>
+      <div class="lbl">Appelli EDI2.S1</div>
+      <ul class="appelli" id="appelli">
+        <li data-a="ord"><span>Ordinario · obbligatorio</span><time>21 feb 2027</time></li>
+        <li data-a="int"><span>Integrativo · solo se non ammesso o non registrato prima</span><time>25 apr 2027</time></li>
+        <li data-a="rec"><span>Recupero · voto massimo 18/30</span><time>11 lug 2027</time></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 09 -->
+<section class="slide dark qa" data-title="Risorse">
+  <div class="inner">
+    <div>
+      <div class="eyebrow"><span class="cue">Prog 09</span> Bibliografia e risorse didattiche</div>
+      <h2>Dove <em>trovare</em> tutto</h2>
+      <ul class="points">
+        <li><b>Canvas.</b> Slide e materiali delle lezioni, link utili, manuali, dispense e tutorial.</li>
+        <li><b>Canvas.</b> Date, giorni e orari delle convocazioni agli appelli.</li>
+      </ul>
+      <div class="cta-row"><a class="btn cta" href="../lezione-01/">Vai alla Lezione 01</a><a class="btn" href="../">Home del corso</a></div>
+    </div>
+    <div>
+      <div class="lbl" style="margin-bottom:10px">Testi di approfondimento</div>
+      <ul class="books">
+        <li><b>Realtà aumentata in spazi pubblici</b><span>Donato Maiello</span></li>
+        <li><b>Tecniche avanzate di videomapping</b><span>Donato Maiello</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<nav class="hud" aria-label="Navigazione slide">
+  <button type="button" id="prev" aria-label="Slide precedente">←</button>
+  <span class="count" id="count">01 / 09</span>
+  <button type="button" id="next" aria-label="Slide successiva">→</button>
+  <span class="ttl" id="ttl"></span>
+  <button type="button" id="ovBtn">Indice</button>
+  <button type="button" id="handoutBtn" aria-pressed="false">Dispensa</button>
+  <button type="button" class="opt" id="notesBtn" aria-pressed="false">Note</button>
+  <button type="button" class="opt" id="fsBtn">Schermo intero</button>
+</nav>
+
+<div class="overlay" id="overview" hidden>
+  <button type="button" class="close" id="ovClose">Chiudi · Esc</button>
+  <h2>Programma · Indice</h2>
+  <div class="ov-grid" id="ovGrid"></div>
+</div>
+
+<aside id="notes" hidden aria-live="polite"><div class="k">Nota per il docente</div><p id="notesText"></p></aside>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+  const slides = $$('.slide');
+  const N = slides.length;
+  const pad = n => String(n).padStart(2, '0');
+  let cur = 0;
+  const enterHooks = {};
+
+  /* ---------- Navigazione ---------- */
+  let handout = false;
+  function go(n) {
+    n = Math.max(0, Math.min(N - 1, n));
+    if (handout) { slides[n].scrollIntoView({ behavior: reducedNav ? 'auto' : 'smooth' }); mark(n); return; }
+    slides.forEach((s, k) => {
+      s.classList.toggle('active', k === n);
+      s.classList.toggle('past', k < n);
+      s.inert = k !== n;
+      s.setAttribute('aria-hidden', k !== n);
+    });
+    cur = n;
+    $('#count').textContent = pad(n + 1) + ' / ' + pad(N);
+    $('#ttl').textContent = slides[n].dataset.title;
+    $('#prog').style.width = ((n + 1) / N * 100) + '%';
+    $('#notesText').textContent = slides[n].dataset.notes || 'Nessuna nota per questa slide.';
+    try { history.replaceState(null, '', '#s' + (n + 1)); } catch (e) {}
+    const h = slides[n].dataset.enter; if (h && enterHooks[h]) enterHooks[h]();
+    $$('#ovGrid button').forEach((b, k) => b.classList.toggle('cur', k === n));
+  }
+  const reducedNav = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* aggiorna contatore e titolo senza cambiare slide (usato in dispensa) */
+  function mark(n) {
+    cur = n;
+    $('#count').textContent = pad(n + 1) + ' / ' + pad(N);
+    $('#ttl').textContent = slides[n].dataset.title;
+    $('#prog').style.width = ((n + 1) / N * 100) + '%';
+    $$('#ovGrid button').forEach((b, k) => b.classList.toggle('cur', k === n));
+  }
+  const seen = new IntersectionObserver(entries => {
+    if (!handout) return;
+    entries.forEach(en => { if (en.isIntersecting) mark(slides.indexOf(en.target)); });
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  slides.forEach(s => seen.observe(s));
+  function setHandout(on) {
+    const at = cur;
+    handout = on;
+    document.body.classList.toggle('handout', on);
+    $('#handoutBtn').setAttribute('aria-pressed', String(on));
+    $('#handoutBtn').textContent = on ? 'Torna alle slide' : 'Dispensa';
+    $('#notes').hidden = true; $('#notesBtn').setAttribute('aria-pressed', 'false');
+    if (on) {
+      slides.forEach(s => { s.inert = false; s.removeAttribute('aria-hidden'); s.classList.remove('past'); s.classList.add('active'); });
+      try { history.replaceState(null, '', '#dispensa'); } catch (e) {}
+      slides[at].scrollIntoView();
+    } else {
+      window.scrollTo(0, 0);
+      go(at);
+    }
+  }
+  $('#handoutBtn').onclick = () => setHandout(!handout);
+  const isField = el => el && (el.matches('input,select,textarea') || el.isContentEditable);
+  document.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = e.target;
+    if (e.key === 'Escape') { $('#overview').hidden = true; $('#notes').hidden = true; $('#notesBtn').setAttribute('aria-pressed', 'false'); return; }
+    if (isField(t)) return;
+    if (e.key === 'd' || e.key === 'D') { setHandout(!handout); return; }
+    if (handout) { if (e.key === 'g' || e.key === 'G' || e.key === 'o') toggleOverview(); return; }
+    if (['ArrowRight', 'PageDown'].includes(e.key) || (e.key === ' ' && !t.matches('button'))) { e.preventDefault(); go(cur + 1); }
+    else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); go(cur - 1); }
+    else if (e.key === 'Home') go(0);
+    else if (e.key === 'End') go(N - 1);
+    else if (e.key === 'g' || e.key === 'G' || e.key === 'o') toggleOverview();
+    else if (e.key === 'n' || e.key === 'N') toggleNotes();
+    else if (e.key === 'f' || e.key === 'F') toggleFs();
+  });
+  let tx = 0, ty = 0, tTarget = null;
+  document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; tTarget = e.target; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (handout || (tTarget && tTarget.closest('input,.stage,.timeline'))) return;
+    const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) go(cur + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+  $('#prev').onclick = () => go(cur - 1);
+  $('#next').onclick = () => go(cur + 1);
+
+  const ovGrid = $('#ovGrid');
+  slides.forEach((s, k) => {
+    const b = document.createElement('button'); b.type = 'button';
+    b.innerHTML = '<small>PROG ' + pad(k + 1) + '</small><b></b>';
+    b.querySelector('b').textContent = s.dataset.title;
+    b.onclick = () => { go(k); $('#overview').hidden = true; };
+    ovGrid.appendChild(b);
+  });
+  function toggleOverview() { const o = $('#overview'); o.hidden = !o.hidden; if (!o.hidden) ovGrid.children[cur].focus(); }
+  function toggleNotes() { const n = $('#notes'); n.hidden = !n.hidden; $('#notesBtn').setAttribute('aria-pressed', String(!n.hidden)); }
+  async function toggleFs() {
+    try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); } catch (e) {}
+  }
+  $('#ovBtn').onclick = toggleOverview; $('#ovClose').onclick = toggleOverview;
+  $('#notesBtn').onclick = toggleNotes; $('#fsBtn').onclick = toggleFs;
+
+  /* segmented helper */
+  function seg(container, cb) {
+    container.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      container.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      cb(b);
+    });
+  }
+  const setSeg = (container, attr, val) => container.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset[attr] === val)));
+
+  /* ---------- Date e scadenze ---------- */
+  const D = (y, m, d) => new Date(y, m - 1, d);
+  const today = (() => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); })();
+  const fmt = d => d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' });
+  const DEADLINES = [
+    { code: 'EDI2.F1', name: 'Storyboard per Product Mapping', d: D(2026, 11, 1), kind: 'Propedeutico', sum: false,
+      text: 'Consegna su Canvas di un unico PDF. Va superato per essere ammessi alla valutazione finale.' },
+    { code: 'EDI2.F2', name: 'Revisione del blockout', d: D(2026, 11, 22), kind: 'Preparatorio', sum: false,
+      text: 'Revisione in classe del blockout e delle prime prove di proiezione.' },
+    { code: 'EDI2.S1', name: 'Product Mapping · appello ordinario', d: D(2027, 2, 21), kind: 'Ordinario', sum: true,
+      text: 'Obbligatorio. Se non consegni, viene registrato 0.' },
+    { code: 'EDI2.S1', name: 'Product Mapping · appello integrativo', d: D(2027, 4, 25), kind: 'Integrativo', sum: true,
+      text: 'Solo se all’appello precedente non sei stato ammesso o il credito non è stato registrato.' },
+    { code: 'EDI2.S1', name: 'Product Mapping · appello di recupero', d: D(2027, 7, 11), kind: 'Recupero', sum: true,
+      text: 'Solo dopo mancata ammissione o registrazione. Penalità accademica: voto massimo 18/30.' }
+  ];
+  const nextIdx = DEADLINES.findIndex(x => x.d >= today);
+  $('#todayLbl').textContent = 'Oggi · ' + fmt(today);
+  if (nextIdx >= 0) {
+    const n = DEADLINES[nextIdx], days = Math.round((n.d - today) / 864e5);
+    $('#nextWhen').textContent = days === 0 ? 'Oggi' : days === 1 ? 'Domani' : 'Tra ' + days + ' giorni';
+    $('#nextWhat').textContent = n.code + ' · ' + n.name.split(' · ')[0] + ' · ' + fmt(n.d);
+  } else {
+    $('#nextWhen').textContent = 'Concluso';
+    $('#nextWhat').textContent = 'Tutte le scadenze dell’anno sono passate.';
+  }
+  $('#dlist').innerHTML = DEADLINES.map((x, i) =>
+    '<li class="' + (x.d < today ? 'past' : '') + (i === nextIdx ? ' is-next' : '') + '"><time>' + fmt(x.d) + '</time>' +
+    '<span><span class="code">' + x.code + '</span> ' + x.name.split(' · ')[0] + '</span><span class="tag' + (x.sum ? ' sum' : '') + '">' + x.kind + '</span></li>').join('');
+
+  /* ---------- 02 · Obiettivi ---------- */
+  const KUSE = {
+    K1: 'Valutato in <b>EDI2.F1</b> (storyboard) e in <b>EDI2.S1</b> (progetto finale).',
+    K2: 'Fa da base a tutto il corso. Il programma non lo elenca tra gli obiettivi valutati di una prova specifica.',
+    K3: 'Fa da base a tutto il corso. Il programma non lo elenca tra gli obiettivi valutati di una prova specifica.',
+    S1: 'Valutato in <b>EDI2.F1</b>, <b>EDI2.F2</b> e <b>EDI2.S1</b>.',
+    S2: 'Valutato in <b>EDI2.F1</b> e in <b>EDI2.S1</b>.',
+    S3: 'Valutato in <b>EDI2.F2</b> (blockout) e in <b>EDI2.S1</b>.'
+  };
+  $('#kgrid').addEventListener('click', e => {
+    const b = e.target.closest('.kitem'); if (!b) return;
+    $$('#kgrid .kitem').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    $('#kuse').innerHTML = '<b>' + b.dataset.k + '.</b> ' + KUSE[b.dataset.k];
+  });
+
+  /* ---------- 03 · Settimane ---------- */
+  const WEEKS = [
+    ['Case study e brief', 'Analisi tecnica di 3 case study (nero, riflessioni, contrasto). Lancio del brief individuale e requisiti dell’oggetto fisico.', '', 'Lezione'],
+    ['Foto e Photoshop', 'Ripresa fotografica dell’oggetto e deformazione dell’immagine in Photoshop.', 'Controllo degli oggetti, revisione di tracciati e livelli nei file PSD/AI.', 'Photoshop'],
+    ['Animazione in AE', 'Importazione e animazione del file statico in After Effects.', 'Assistenza sul file AE: precomp, maschere e tracciati.', 'After Effects'],
+    ['3 stili di animazione', 'Wireframe, materiali e content.', 'Review di editing e fattibilità.', 'After Effects'],
+    ['Effetti e transizioni', 'Applicazione e creazione di effetti, pattern e transizioni.', '', 'After Effects'],
+    ['MadMapper', 'Introduzione a MadMapper, applicazione visiva sull’oggetto.', 'Esercitazione su MadMapper.', 'MadMapper'],
+    ['Review a schermo', 'Review del filmato a schermo.', 'Laboratorio di revisione.', 'Revisione'],
+    ['Mapping oggetti', 'Mapping degli oggetti.', 'Correzione di mapping e animazioni.', 'MadMapper'],
+    ['Color e proiezione', 'Color grading e proiezione.', 'Applicazione del color.', 'Color'],
+    ['Particellari e sound', 'Inserimento di particellari e sound.', 'Verifica del loop continuo e dell’audio.', 'Sound'],
+    ['Riprese e aftermovie', 'Riprese e aftermovie.', '', 'Camera'],
+    ['Codec e Resolume', 'Codec e Resolume Arena.', '', 'Resolume'],
+    ['Test live 1', 'Primo test di mapping live + shooting.', '', 'Live'],
+    ['Test live 2', 'Secondo test di mapping live + shooting.', '', 'Live'],
+    ['Visione finale', 'Visione di tutti i progetti.', '', 'Visione']
+  ];
+  const weeksEl = $('#weeks');
+  weeksEl.innerHTML = WEEKS.map((w, i) => '<button type="button" class="wk' + (i === 0 ? ' live' : '') + '" data-i="' + i + '" aria-pressed="' + (i === 0) + '"><small>W' + pad(i + 1) + '</small><span>' + w[0] + '</span></button>').join('');
+  function showWeek(i) {
+    const w = WEEKS[i];
+    $$('#weeks .wk').forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
+    $('#wkLbl').textContent = 'Week ' + pad(i + 1) + ' · ' + w[3];
+    $('#wdetail').innerHTML = '<h3>Week ' + pad(i + 1) + ' · ' + w[0] + '</h3><p>' + w[1] + '</p>' + (w[2] ? '<p class="sub">' + w[2] + '</p>' : '') +
+      (i === 0 ? '<p class="sub">Questa è la lezione di oggi.</p>' : '');
+  }
+  weeksEl.addEventListener('click', e => { const b = e.target.closest('.wk'); if (b) showWeek(+b.dataset.i); });
+  showWeek(0);
+
+  /* ---------- 04 · Linea del tempo ---------- */
+  const T0 = D(2026, 10, 1), T1 = D(2027, 7, 31);
+  const pos = d => Math.max(0, Math.min(100, (d - T0) / (T1 - T0) * 100));
+  const tl = $('#tline');
+  ['ott', 'nov', 'dic', 'gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug'].forEach((m, i) => {
+    const d = D(2026, 10 + i > 12 ? 10 + i - 12 : 10 + i, 1); if (10 + i > 12) d.setFullYear(2027);
+    tl.insertAdjacentHTML('beforeend', '<span class="mo" style="left:' + pos(d) + '%">' + m + '</span>');
+  });
+  if (today >= T0 && today <= T1) tl.insertAdjacentHTML('beforeend', '<div class="today" style="left:' + pos(today) + '%"><span>oggi</span></div>');
+  DEADLINES.forEach((x, i) => tl.insertAdjacentHTML('beforeend',
+    '<button type="button" class="mk' + (x.sum ? ' sum' : '') + '" data-i="' + i + '" style="left:' + pos(x.d) + '%" aria-label="' + x.code + ' ' + fmt(x.d) + '" aria-pressed="false"></button>'));
+  function showMk(i) {
+    const x = DEADLINES[i];
+    $$('#tline .mk').forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
+    $('#mkdetail').innerHTML = '<span class="d">' + fmt(x.d) + ' · ' + x.code + '</span><b class="verdict-sm">' + x.name + '</b><p>' + x.text + '</p>';
+  }
+  tl.addEventListener('click', e => { const b = e.target.closest('.mk'); if (b) showMk(+b.dataset.i); });
+  showMk(nextIdx >= 0 ? nextIdx : 0);
+
+  /* ---------- 05 / 07 · Nome file ---------- */
+  const MAT_RE = /^\d{2}-\d{4,6}$/;
+  function fileName(id, code, title, ext) {
+    const inp = $('#mat' + id), v = inp.value.trim(), ok = MAT_RE.test(v);
+    $('#mat' + id + 'err').textContent = v && !ok ? 'Formato atteso: due cifre, trattino, numero (es. 17-12345).' : '';
+    const m = ok ? v : '<span class="ph">Matricola</span>';
+    $('#fn' + id).innerHTML = m + '_' + code + '_' + title + ext;
+  }
+  const FN = { 1: ['EDI2.F1', 'Storyboard', '.pdf'], 2: ['EDI2.S1', 'ProductMapping', '.7z'] };
+  [1, 2].forEach(id => { $('#mat' + id).addEventListener('input', () => { $('#mat' + (id === 1 ? 2 : 1)).value = $('#mat' + id).value; fileName(1, ...FN[1]); fileName(2, ...FN[2]); }); });
+  fileName(1, ...FN[1]); fileName(2, ...FN[2]);
+  $$('[data-copy]').forEach(b => b.addEventListener('click', () => {
+    const id = b.dataset.copy, box = $('#' + id), msg = $('#' + id + 'msg'), txt = box.textContent;
+    if (!MAT_RE.test($('#mat' + id.slice(-1)).value.trim())) { msg.textContent = 'Inserisci prima la matricola.'; return; }
+    const sel = () => { const r = document.createRange(); r.selectNodeContents(box); const s = getSelection(); s.removeAllRanges(); s.addRange(r); msg.textContent = 'Testo selezionato: premi Cmd/Ctrl+C.'; };
+    try { navigator.clipboard.writeText(txt).then(() => msg.textContent = 'Copiato', sel); } catch (e) { sel(); }
+  }));
+
+  /* ---------- checklist (salvate solo in questo browser) ---------- */
+  function checklist(boxId, outId, key, label) {
+    const boxes = $$('#' + boxId + ' input');
+    let st = []; try { st = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) {}
+    const upd = () => { const n = boxes.filter(b => b.checked).length; $('#' + outId).innerHTML = label + ' <b>' + n + ' / ' + boxes.length + '</b>'; };
+    boxes.forEach((b, i) => { b.checked = !!st[i]; b.addEventListener('change', () => { try { localStorage.setItem(key, JSON.stringify(boxes.map(x => x.checked))); } catch (e) {} upd(); }); });
+    upd();
+  }
+  checklist('f2checks', 'f2prog', 'edi2-prog-f2', 'Pronto per la revisione:');
+  checklist('s1checks', 's1prog', 'edi2-prog-s1', 'Nell’archivio:');
+
+  /* ---------- 08 · Ammissione ---------- */
+  let f1ok = true;
+  function admission() {
+    const p = +$('#pres').value; $('#presOut').textContent = p + '%';
+    const why = [];
+    if (p < 80) why.push('presenze sotto l’80%');
+    if (!f1ok) why.push('EDI2.F1 non superato');
+    const ok = !why.length;
+    $('#admV').textContent = ok ? 'Ammesso' : 'Non ammesso';
+    $('#admV').className = 'verdict-sm ' + (ok ? 'ok' : 'no');
+    $('#admS').textContent = ok ? 'Puoi consegnare EDI2.S1 all’appello ordinario.' : 'Motivo: ' + why.join(' e ') + '. Resta l’appello integrativo.';
+    $$('#appelli li').forEach(li => li.setAttribute('aria-current', String(li.dataset.a === (ok ? 'ord' : 'int'))));
+  }
+  $('#pres').oninput = admission;
+  seg($('#f1seg'), b => { f1ok = b.dataset.v === 'si'; admission(); });
+  admission();
+
+  /* ---------- avvio ---------- */
+  const m = /^#s(\d+)$/.exec(location.hash || '');
+  go(m ? (+m[1] - 1) : 0);
+  if (location.hash === '#dispensa') setHandout(true);
+})();
+</script>
+</body>
+</html>

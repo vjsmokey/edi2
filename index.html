@@ -2,11 +2,42 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>EDI 2 · Product Mapping</title>
-<meta http-equiv="refresh" content="0; url=lezione-01/">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EDI 2 Product Mapping</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Bebas+Neue&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{--black:#000;--ink:#1c1c1c;--g2:#2d2d2d;--g6:#666;--g8:#888;--white:#fff;--orange:#ff6900;
+  --display:"Archivo","Arial Black",system-ui,sans-serif;--body:"Bebas Neue","Arial Narrow",Impact,sans-serif;--mono:"JetBrains Mono",ui-monospace,Menlo,monospace;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--black);color:var(--white);font:400 1.3rem/1.2 var(--body);letter-spacing:.02em;-webkit-font-smoothing:antialiased}
+main{max-width:1100px;margin:0 auto;padding:clamp(40px,10vh,110px) clamp(16px,5vw,64px) 64px}
+.eyebrow{font:600 .72rem var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--g8)}
+h1{font-family:var(--display);font-variation-settings:"wdth" 125;font-weight:800;text-transform:uppercase;font-size:clamp(2.4rem,7vw,5.6rem);line-height:.98;margin:.3em 0 .4em;text-wrap:balance}
+h1 em{font-style:normal;color:var(--orange)}
+.lede{font:700 clamp(1.05rem,1.6vw,1.3rem)/1.35 var(--display);font-variation-settings:"wdth" 110;margin:0 0 2.4em;max-width:46ch}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.card{display:grid;gap:.5em;align-content:start;background:var(--ink);padding:22px;color:var(--white);text-decoration:none;border:2px solid transparent;min-height:190px}
+.card:hover,.card:focus-visible{border-color:var(--orange);outline:none}
+.card small{font:600 .7rem var(--mono);letter-spacing:.12em;color:var(--orange);text-transform:uppercase}
+.card b{font:800 1.4rem/1.05 var(--display);font-variation-settings:"wdth" 120;text-transform:uppercase}
+.card span{color:var(--g8)}
+.card.soon{opacity:.45;pointer-events:none}
+footer{margin-top:3em;font:400 .75rem var(--mono);color:var(--g6)}
+</style>
 </head>
-<body style="background:#0b0c10;color:#f3efe4;font-family:system-ui,sans-serif;padding:24px">
-<p><a href="lezione-01/" style="color:#f3efe4">Lezione 01 · Dal Monitor allo Spazio</a></p>
+<body>
+<main>
+  <div class="eyebrow">AA 2627 · 21V0-ABTEC38 - EDI 2</div>
+  <h1>Product <em>Mapping</em></h1>
+  <p class="lede">Elaborazione Digitale dell'Immagine 2 · Docente Corrado Santoro.</p>
+  <div class="cards">
+    <a class="card" href="programma/"><small>Programma</small><b>Programma del corso</b><span>Obiettivi, 15 settimane, prove d'esame e scadenze.</span></a>
+    <a class="card" href="lezione-01/"><small>Lezione 01</small><b>Dal Monitor allo Spazio</b><span>Il nero ottico, tre case study, il brief e i vincoli dell'oggetto.</span></a>
+    <div class="card soon" aria-disabled="true"><small>Lezione 02</small><b>In arrivo</b><span>Ripresa fotografica dell'oggetto e Photoshop.</span></div>
+  </div>
+  <footer>Materiali ufficiali, date e orari degli appelli: Canvas.</footer>
+</main>
 </body>
 </html>
